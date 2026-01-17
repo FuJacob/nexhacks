@@ -26,13 +26,11 @@ class TwitchChatProcessor(commands.Bot, InputProcessor):
         batch_interval: float = 2.0,
         max_batch_size: int = 10,
     ):
+        # TwitchIO 2.x: only needs token and initial_channels for IRC chat
         super().__init__(
             token=token,
             prefix="!",
             initial_channels=[channel],
-            client_id=client_id,
-            client_secret=client_secret,
-            bot_id=bot_id,
         )
         self.channel = channel
         self.batch_interval = batch_interval
@@ -44,7 +42,8 @@ class TwitchChatProcessor(commands.Bot, InputProcessor):
 
     async def event_ready(self) -> None:
         """Called when the bot is ready."""
-        bot_name = self.user.name if self.user else "unknown"
+        # TwitchIO 2.x uses self.nick
+        bot_name = self.nick if self.nick else "unknown"
         logger.info("twitch_connected", bot_name=bot_name, channel=self.channel)
         logger.info("bot_waiting_for_messages", channel=self.channel)
         

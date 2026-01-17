@@ -9,7 +9,7 @@ from typing import Any
 import yaml
 
 from .context_manager import ContextManager
-from .llm_client import LLMClient
+from .llm_client import LLMClient, PersonaResponse
 from ..inputs.base import InputEvent
 from ..utils.logging import get_logger
 
@@ -132,15 +132,15 @@ You MUST respond with valid JSON in this exact format:
             *self.context.get_messages(),
         ]
 
-        # Get LLM response
+        # Get LLM response with structured output
         try:
-            result = await self.llm.chat_completion(messages)
+            response = await self.llm.get_persona_response(messages)
         except Exception as e:
             logger.error("persona_llm_error", error=str(e))
             return None
 
-        text = result.get("text", "")
-        emotion = result.get("emotion", "neutral")
+        text = response.text
+        emotion = response.emotion
 
         # Validate emotion
         if emotion not in self.persona.emotions:
