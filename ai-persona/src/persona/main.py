@@ -40,7 +40,7 @@ async def main() -> None:
         logger.info("persona_loaded", name=persona_config.name)
 
         # Initialize components
-        llm_client = LLMClient(api_key=settings.openai_api_key)
+        llm_client = LLMClient(api_key=settings.gemini_api_key)
 
         brain = PersonaBrain(
             llm_client=llm_client,
@@ -48,9 +48,8 @@ async def main() -> None:
         )
 
         tts = TTSProcessor(
-            api_key=settings.openai_api_key,
-            voice=persona_config.voice.get("voice_id", "nova"),
             output_device=settings.audio_output_device,
+            lang="en",
         )
 
         avatar = AvatarProcessor()
@@ -67,6 +66,8 @@ async def main() -> None:
             token=settings.twitch_bot_token,
             channel=settings.twitch_channel,
             client_id=settings.twitch_client_id,
+            client_secret=settings.twitch_client_secret,
+            bot_id=settings.twitch_bot_id,
             batch_interval=2.0,
             max_batch_size=persona_config.behavior.get("chat_batch_size", 10),
         )

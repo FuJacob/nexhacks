@@ -1,12 +1,13 @@
-"""Text-to-speech output using OpenAI TTS."""
+"""Text-to-speech output using gTTS (Google Text-to-Speech)."""
 
 import asyncio
 import io
+import tempfile
 from typing import Callable, Awaitable
 
 import numpy as np
 import sounddevice as sd
-from openai import AsyncOpenAI
+from gtts import gTTS
 
 from ..brain.persona_engine import OutputEvent
 from ..utils.logging import get_logger
@@ -16,20 +17,18 @@ logger = get_logger(__name__)
 
 class TTSProcessor:
     """
-    Text-to-speech processor using OpenAI TTS.
+    Text-to-speech processor using gTTS.
     Outputs audio to virtual audio cable for OBS capture.
     """
 
     def __init__(
         self,
-        api_key: str,
-        voice: str = "nova",
         output_device: str | None = None,
+        lang: str = "en",
         sample_rate: int = 24000,
     ):
-        self.client = AsyncOpenAI(api_key=api_key)
-        self.voice = voice
         self.output_device = output_device
+        self.lang = lang
         self.sample_rate = sample_rate
         self.speaking = False
         self.queue: asyncio.Queue[str] = asyncio.Queue()
@@ -47,7 +46,7 @@ class TTSProcessor:
         """Start the TTS processor."""
         self._running = True
         self._speak_task = asyncio.create_task(self._speak_loop())
-        logger.info("tts_started", voice=self.voice, device=self.output_device)
+        logger.info("tts_started", lang=self.lang, device=self.output_device)
 
     async def stop(self) -> None:
         """Stop the TTS processor."""
@@ -99,32 +98,82 @@ class TTSProcessor:
     async def _speak(self, text: str) -> None:
         """Generate and play speech for text."""
         try:
-            # Generate audio from OpenAI
-            response = await self.client.audio.speech.create(
-                model="tts-1",
-                voice=self.voice,
-                input=text,
-                response_format="pcm",
+            # Generate audio using gTTS in a thread pool (it's sync/blocking)
+            loop = asyncio.get_event_loop()
+            audio_data = await loop.run_in_executor(
+                None, self._generate_audio, text
             )
 
-            # Read audio data
-            audio_bytes = response.content
-
-            # Convert PCM to numpy array (16-bit signed int, little-endian)
-            audio = np.frombuffer(audio_bytes, dtype=np.int16)
-            audio = audio.astype(np.float32) / 32768.0
+            if audio_data is None:
+                return
 
             # Find output device
             device_id = self._find_device()
 
             # Play audio
-            logger.debug("tts_playing", duration_sec=len(audio) / self.sample_rate)
-            sd.play(audio, samplerate=self.sample_rate, device=device_id)
+            logger.debug("tts_playing", duration_sec=len(audio_data) / self.sample_rate)
+            sd.play(audio_data, samplerate=self.sample_rate, device=device_id)
             sd.wait()
 
         except Exception as e:
             logger.error("tts_speak_error", error=str(e))
             raise
+
+    def _generate_audio(self, text: str) -> np.ndarray | None:
+        """Generate audio from text using gTTS (sync, runs in thread pool)."""
+        try:
+            # Generate speech
+            tts = gTTS(text=text, lang=self.lang, slow=False)
+
+            # Save to bytes buffer
+            mp3_buffer = io.BytesIO()
+            tts.write_to_fp(mp3_buffer)
+            mp3_buffer.seek(0)
+
+            # Convert MP3 to WAV using a temp file
+            # gTTS outputs MP3, we need to decode it
+            import wave
+            import subprocess
+            import tempfile
+            import os
+
+            # Write MP3 to temp file
+            with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as mp3_file:
+                mp3_file.write(mp3_buffer.read())
+                mp3_path = mp3_file.name
+
+            # Convert to WAV using ffmpeg (if available) or use pydub
+            wav_path = mp3_path.replace(".mp3", ".wav")
+
+            try:
+                # Try ffmpeg first (faster)
+                subprocess.run(
+                    ["ffmpeg", "-i", mp3_path, "-ar", str(self.sample_rate), "-ac", "1", "-y", wav_path],
+                    capture_output=True,
+                    check=True,
+                )
+            except (subprocess.CalledProcessError, FileNotFoundError):
+                # Fallback: use built-in approach - just play raw mp3 data
+                # This is a simplified approach; for production, install ffmpeg
+                logger.warning("ffmpeg_not_found", msg="Install ffmpeg for better audio quality")
+                os.unlink(mp3_path)
+                return None
+
+            # Read WAV file
+            with wave.open(wav_path, "rb") as wav_file:
+                frames = wav_file.readframes(wav_file.getnframes())
+                audio = np.frombuffer(frames, dtype=np.int16)
+                audio = audio.astype(np.float32) / 32768.0
+
+            # Clean up temp files
+            os.unlink(mp3_path)
+            os.unlink(wav_path)
+
+            return audio
+
+        except Exception as e:
+            logger.error("tts_generate_error", error=str(e))
+            return None
 
     def _find_device(self) -> int | None:
         """Find the output device by name."""

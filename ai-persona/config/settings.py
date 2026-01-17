@@ -8,12 +8,14 @@ from pydantic import Field
 class Settings(BaseSettings):
     """Application settings loaded from environment."""
 
-    # OpenAI
-    openai_api_key: str = Field(..., alias="OPENAI_API_KEY")
+    # Gemini API
+    gemini_api_key: str = Field(..., alias="GEMINI_API_KEY")
 
     # Twitch
     twitch_bot_token: str = Field(..., alias="TWITCH_BOT_TOKEN")
     twitch_client_id: str = Field(..., alias="TWITCH_CLIENT_ID")
+    twitch_client_secret: str = Field(..., alias="TWITCH_CLIENT_SECRET")
+    twitch_bot_id: str = Field(..., alias="TWITCH_BOT_ID")
     twitch_channel: str = Field(..., alias="TWITCH_CHANNEL")
     twitch_bot_username: str = Field(..., alias="TWITCH_BOT_USERNAME")
 

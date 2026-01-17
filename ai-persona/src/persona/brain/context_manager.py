@@ -4,8 +4,6 @@ from collections import deque
 from dataclasses import dataclass
 from datetime import datetime
 
-import tiktoken
-
 from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -27,10 +25,12 @@ class ContextManager:
     Implements a sliding window that trims oldest entries when over limit.
     """
 
-    def __init__(self, max_tokens: int = 4000, model: str = "gpt-4o"):
+    # Approximate tokens per character (conservative estimate)
+    CHARS_PER_TOKEN = 4
+
+    def __init__(self, max_tokens: int = 4000):
         self.max_tokens = max_tokens
         self.entries: deque[ContextEntry] = deque()
-        self.encoder = tiktoken.encoding_for_model(model)
 
     def add_input(self, source: str, content: str) -> None:
         """Add an input event to context."""
@@ -59,7 +59,7 @@ class ContextManager:
         logger.debug("context_response_added", tokens=self._count_tokens())
 
     def get_messages(self) -> list[dict[str, str]]:
-        """Get messages formatted for OpenAI API."""
+        """Get messages formatted for LLM API."""
         return [{"role": e.role, "content": e.content} for e in self.entries]
 
     def clear(self) -> None:
@@ -73,8 +73,12 @@ class ContextManager:
             logger.debug("context_trimmed", removed_role=removed.role)
 
     def _count_tokens(self) -> int:
-        """Count total tokens in context."""
-        return sum(len(self.encoder.encode(e.content)) for e in self.entries)
+        """
+        Estimate token count in context.
+        Uses a simple character-based approximation (~4 chars per token).
+        """
+        total_chars = sum(len(e.content) for e in self.entries)
+        return total_chars // self.CHARS_PER_TOKEN
 
     @property
     def token_count(self) -> int:

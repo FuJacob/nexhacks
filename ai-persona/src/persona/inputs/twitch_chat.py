@@ -21,6 +21,8 @@ class TwitchChatProcessor(commands.Bot, InputProcessor):
         token: str,
         channel: str,
         client_id: str | None = None,
+        client_secret: str | None = None,
+        bot_id: str | None = None,
         batch_interval: float = 2.0,
         max_batch_size: int = 10,
     ):
@@ -29,6 +31,8 @@ class TwitchChatProcessor(commands.Bot, InputProcessor):
             prefix="!",
             initial_channels=[channel],
             client_id=client_id,
+            client_secret=client_secret,
+            bot_id=bot_id,
         )
         self.channel = channel
         self.batch_interval = batch_interval
@@ -40,25 +44,44 @@ class TwitchChatProcessor(commands.Bot, InputProcessor):
 
     async def event_ready(self) -> None:
         """Called when the bot is ready."""
-        logger.info("twitch_connected", nick=self.nick, channel=self.channel)
+        bot_name = self.user.name if self.user else "unknown"
+        logger.info("twitch_connected", bot_name=bot_name, channel=self.channel)
+        logger.info("bot_waiting_for_messages", channel=self.channel)
+        
+        # Log connected channels
+        channels = getattr(self, 'connected_channels', [])
+        logger.info("connected_channels", channels=[str(c) for c in channels])
+
+    async def event_channel_joined(self, channel) -> None:
+        """Called when the bot joins a channel."""
+        logger.info("channel_joined", channel=channel.name)
 
     async def event_message(self, message) -> None:
         """Handle incoming chat messages."""
+        logger.info(
+            "raw_message_received",
+            echo=message.echo,
+            author=message.author.name if message.author else None,
+            content=message.content,
+            channel=message.channel.name if message.channel else None,
+        )
+        
         # Ignore bot's own messages
         if message.echo:
+            logger.info("ignoring_echo_message")
             return
+
+        logger.info(
+            "chat_message_received",
+            user=message.author.name if message.author else "anonymous",
+            content=message.content,
+        )
 
         self.message_buffer.append({
             "user": message.author.name if message.author else "anonymous",
             "content": message.content,
             "timestamp": datetime.now(),
         })
-
-        logger.debug(
-            "chat_message_received",
-            user=message.author.name if message.author else "anonymous",
-            content=message.content[:50],
-        )
 
         # If buffer is full, flush immediately
         if len(self.message_buffer) >= self.max_batch_size:
