@@ -48,6 +48,7 @@ async def main() -> None:
         )
 
         tts = TTSProcessor(
+            api_key=settings.deepgram_api_key,
             output_device=settings.audio_output_device,
             lang="en",
         )

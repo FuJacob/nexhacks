@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     # Gemini API
     gemini_api_key: str = Field(..., alias="GEMINI_API_KEY")
 
+    # Deepgram API
+    deepgram_api_key: str = Field(..., alias="DEEPGRAM_API_KEY")
+
     # Twitch
     twitch_bot_token: str = Field(..., alias="TWITCH_BOT_TOKEN")
     twitch_client_id: str = Field(..., alias="TWITCH_CLIENT_ID")

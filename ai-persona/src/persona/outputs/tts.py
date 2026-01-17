@@ -1,13 +1,16 @@
-"""Text-to-speech output using gTTS (Google Text-to-Speech)."""
+"""Text-to-speech output using Deepgram."""
 
 import asyncio
 import io
+import os
+import subprocess
 import tempfile
+import wave
 from typing import Callable, Awaitable
 
 import numpy as np
 import sounddevice as sd
-from gtts import gTTS
+from deepgram import DeepgramClient, SpeakOptions
 
 from ..brain.persona_engine import OutputEvent
 from ..utils.logging import get_logger
@@ -17,19 +20,27 @@ logger = get_logger(__name__)
 
 class TTSProcessor:
     """
-    Text-to-speech processor using gTTS.
+    Text-to-speech processor using Deepgram.
     Outputs audio to virtual audio cable for OBS capture.
     """
 
     def __init__(
         self,
+        api_key: str,
         output_device: str | None = None,
         lang: str = "en",
         sample_rate: int = 24000,
+        voice_model: str = "aura-asteria-en",
     ):
+        self.api_key = api_key
         self.output_device = output_device
         self.lang = lang
         self.sample_rate = sample_rate
+        self.voice_model = voice_model
+        
+        # Initialize Deepgram client
+        self.client = DeepgramClient(api_key)
+        
         self.speaking = False
         self.queue: asyncio.Queue[str] = asyncio.Queue()
         self._running = False
@@ -46,7 +57,7 @@ class TTSProcessor:
         """Start the TTS processor."""
         self._running = True
         self._speak_task = asyncio.create_task(self._speak_loop())
-        logger.info("tts_started", lang=self.lang, device=self.output_device)
+        logger.info("tts_started", voice=self.voice_model, device=self.output_device)
 
     async def stop(self) -> None:
         """Stop the TTS processor."""
@@ -98,7 +109,7 @@ class TTSProcessor:
     async def _speak(self, text: str) -> None:
         """Generate and play speech for text."""
         try:
-            # Generate audio using gTTS in a thread pool (it's sync/blocking)
+            # Generate audio using Deepgram in a thread pool (requests can be blocking)
             loop = asyncio.get_event_loop()
             audio_data = await loop.run_in_executor(
                 None, self._generate_audio, text
@@ -117,45 +128,44 @@ class TTSProcessor:
 
         except Exception as e:
             logger.error("tts_speak_error", error=str(e))
-            raise
+            # Don't raise here to keep loop running
+            pass
 
     def _generate_audio(self, text: str) -> np.ndarray | None:
-        """Generate audio from text using gTTS (sync, runs in thread pool)."""
+        """Generate audio from text using Deepgram (sync, runs in thread pool)."""
         try:
+            # Configure options
+            options = SpeakOptions(
+                model=self.voice_model,
+            )
+
             # Generate speech
-            tts = gTTS(text=text, lang=self.lang, slow=False)
+            response = self.client.speak.v1.audio.generate(
+                text=text,
+                options=options
+            )
 
-            # Save to bytes buffer
-            mp3_buffer = io.BytesIO()
-            tts.write_to_fp(mp3_buffer)
-            mp3_buffer.seek(0)
-
-            # Convert MP3 to WAV using a temp file
-            # gTTS outputs MP3, we need to decode it
-            import wave
-            import subprocess
-            import tempfile
-            import os
+            # Read the full stream
+            audio_bytes = response.stream.getvalue()
 
             # Write MP3 to temp file
             with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as mp3_file:
-                mp3_file.write(mp3_buffer.read())
+                mp3_file.write(audio_bytes)
                 mp3_path = mp3_file.name
 
-            # Convert to WAV using ffmpeg (if available) or use pydub
+            # Convert to WAV using ffmpeg (if available)
             wav_path = mp3_path.replace(".mp3", ".wav")
 
             try:
                 # Try ffmpeg first (faster)
+                # Ensure we resample to self.sample_rate
                 subprocess.run(
                     ["ffmpeg", "-i", mp3_path, "-ar", str(self.sample_rate), "-ac", "1", "-y", wav_path],
                     capture_output=True,
                     check=True,
                 )
             except (subprocess.CalledProcessError, FileNotFoundError):
-                # Fallback: use built-in approach - just play raw mp3 data
-                # This is a simplified approach; for production, install ffmpeg
-                logger.warning("ffmpeg_not_found", msg="Install ffmpeg for better audio quality")
+                logger.error("ffmpeg_not_found", msg="ffmpeg required for audio conversion")
                 os.unlink(mp3_path)
                 return None
 
