@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     twitch_bot_username: str = Field(..., alias="TWITCH_BOT_USERNAME")
 
     # Audio
-    audio_output_device: str = Field("VB-Cable", alias="AUDIO_OUTPUT_DEVICE")
+    audio_output_device: str = Field("MacBook Pro Speakers", alias="AUDIO_OUTPUT_DEVICE")
 
     # Server
     host: str = Field("127.0.0.1", alias="HOST")
