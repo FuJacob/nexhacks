@@ -14,7 +14,8 @@
     "@overshoot/sdk": "^0.1.0-alpha.2",
     "dotenv": "^16.4.0",
     "fastify": "^4.26.0",
-    "pino-pretty": "^11.0.0"
+    "pino-pretty": "^11.0.0",
+    "puppeteer": "^24.35.0"
   },
   "engines": {
     "node": ">=18.0.0"

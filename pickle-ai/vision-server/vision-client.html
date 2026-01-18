@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Vision Client</title>
+    <script type="module">
+        console.log('__DEBUG__ Loading SDK from CDN...');
+        
+        let RealtimeVision;
+        try {
+            const sdk = await import('https://esm.sh/@overshoot/sdk@0.1.0-alpha.2');
+            RealtimeVision = sdk.RealtimeVision;
+            console.log('__DEBUG__ SDK loaded successfully, RealtimeVision:', typeof RealtimeVision);
+        } catch (loadErr) {
+            console.log('__VISION_ERROR__' + JSON.stringify({
+                ok: false,
+                error: 'Failed to load SDK: ' + loadErr.message,
+                timestamp: new Date().toISOString(),
+            }));
+            throw loadErr;
+        }
+
+        let vision = null;
+        let currentPrompt = '';
+
+        // Expose functions to Puppeteer
+        window.initVision = async (config) => {
+            console.log('__DEBUG__ initVision called with config:', JSON.stringify({
+                apiUrl: config.apiUrl,
+                hasApiKey: !!config.apiKey,
+                promptLength: config.prompt?.length,
+            }));
+            
+            try {
+                currentPrompt = config.prompt;
+                
+                vision = new RealtimeVision({
+                    apiUrl: config.apiUrl || 'https://api.overshoot.ai',
+                    apiKey: config.apiKey,
+                    prompt: currentPrompt,
+                    debug: config.debug || false,
+                    processing: {
+                        fps: 30,
+                        sampling_ratio: 0.1,
+                        clip_length_seconds: 2.0,
+                        delay_seconds: 3.0,
+                    },
+                    onResult: (result) => {
+                        console.log('__DEBUG__ Vision result received');
+                        // Send result to Puppeteer via console
+                        console.log('__VISION_RESULT__' + JSON.stringify({
+                            id: result.id,
+                            streamId: result.stream_id,
+                            result: result.result,
+                            ok: result.ok,
+                            error: result.error,
+                            latencyMs: result.total_latency_ms,
+                            timestamp: new Date().toISOString(),
+                            prompt: result.prompt,
+                        }));
+                    },
+                    onError: (error) => {
+                        console.log('__DEBUG__ Vision onError callback:', error.message);
+                        console.log('__VISION_ERROR__' + JSON.stringify({
+                            ok: false,
+                            error: error.message,
+                            timestamp: new Date().toISOString(),
+                        }));
+                    },
+                });
+
+                console.log('__DEBUG__ RealtimeVision instance created');
+                return { ok: true, message: 'Vision initialized' };
+            } catch (err) {
+                console.log('__DEBUG__ initVision error:', err.message, err.stack);
+                return { ok: false, error: err.message };
+            }
+        };
+
+        window.startVision = async () => {
+            console.log('__DEBUG__ startVision called');
+            try {
+                if (!vision) {
+                    console.log('__DEBUG__ Vision not initialized');
+                    return { ok: false, error: 'Vision not initialized' };
+                }
+                
+                console.log('__DEBUG__ Checking navigator.mediaDevices:', typeof navigator?.mediaDevices);
+                console.log('__DEBUG__ Calling vision.start()...');
+                
+                await vision.start();
+                
+                console.log('__DEBUG__ vision.start() completed successfully');
+                return { ok: true, message: 'Vision started' };
+            } catch (err) {
+                console.log('__DEBUG__ startVision error:', err.message);
+                console.log('__DEBUG__ startVision stack:', err.stack);
+                return { ok: false, error: err.message };
+            }
+        };
+
+        window.stopVision = async () => {
+            console.log('__DEBUG__ stopVision called');
+            try {
+                if (vision) {
+                    await vision.stop();
+                }
+                return { ok: true, message: 'Vision stopped' };
+            } catch (err) {
+                console.log('__DEBUG__ stopVision error:', err.message);
+                return { ok: false, error: err.message };
+            }
+        };
+
+        window.updatePrompt = async (prompt) => {
+            console.log('__DEBUG__ updatePrompt called');
+            try {
+                currentPrompt = prompt;
+                if (vision) {
+                    await vision.updatePrompt(prompt);
+                }
+                return { ok: true, message: 'Prompt updated' };
+            } catch (err) {
+                return { ok: false, error: err.message };
+            }
+        };
+
+        window.getStatus = () => {
+            return {
+                initialized: !!vision,
+                prompt: currentPrompt,
+                hasNavigator: typeof navigator !== 'undefined',
+                hasMediaDevices: typeof navigator?.mediaDevices !== 'undefined',
+            };
+        };
+
+        // Test navigator availability
+        console.log('__DEBUG__ navigator available:', typeof navigator);
+        console.log('__DEBUG__ navigator.mediaDevices:', typeof navigator?.mediaDevices);
+        console.log('__DEBUG__ navigator.mediaDevices.getUserMedia:', typeof navigator?.mediaDevices?.getUserMedia);
+
+        // Signal that we're ready
+        console.log('__VISION_READY__');
+    </script>
+</head>
+<body>
+    <h1>Vision Client</h1>
+    <p>This page runs the Overshoot SDK for the AI Persona vision server.</p>
+</body>
+</html>
