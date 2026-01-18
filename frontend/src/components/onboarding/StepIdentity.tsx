@@ -130,7 +130,7 @@ export const StepIdentity: React.FC<StepIdentityProps> = ({
           />
         </div>
 
-        {/* Avatar Ring */}}
+        {/* Avatar Ring */}
         <div
           className="relative group cursor-pointer flex-shrink-0"
           onClick={() => setShowAvatarPicker(true)}

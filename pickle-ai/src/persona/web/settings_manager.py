@@ -31,7 +31,8 @@ class VoiceSettings(BaseModel):
 class BehaviorSettings(BaseModel):
     """Behavior configuration settings."""
     
-    spontaneous_rate: float = Field(default=0.15, ge=0, le=1, description="Probability of spontaneous commentary (0-1)")
+    vision_rate: float = Field(default=0.6, ge=0, le=1, description="Probability of reacting to vision (0-1)")
+    speech_rate: float = Field(default=0.2, ge=0, le=1, description="Probability of reacting to speech (0-1)")
     cooldown: float = Field(default=3.0, ge=0, description="Minimum seconds between responses")
     chat_batch_size: int = Field(default=10, ge=1, description="Max chat messages to batch before processing")
     trigger_words: list[str] = Field(default_factory=lambda: ["pixel", "hey ai", "bot"], description="Keywords that trigger immediate response")
@@ -88,7 +89,7 @@ class SettingsManager:
         settings = PickleSettings()
         
         # Load from JSON settings file if it exists
-        if self.settings_file.exists():
+        if(self.settings_file.exists()):
             try:
                 with open(self.settings_file, "r") as f:
                     data = json.load(f)
@@ -110,7 +111,8 @@ class SettingsManager:
                         "style": yaml_data.get("style", settings.persona.style),
                         "emotions": yaml_data.get("emotions", settings.persona.emotions),
                         "behavior": BehaviorSettings(
-                            spontaneous_rate=behavior_data.get("spontaneous_rate", 0.15),
+                            vision_rate=behavior_data.get("vision_rate", 0.6),
+                            speech_rate=behavior_data.get("speech_rate", 0.2),
                             cooldown=behavior_data.get("cooldown", 3.0),
                             chat_batch_size=behavior_data.get("chat_batch_size", 10),
                             trigger_words=behavior_data.get("trigger_words", ["pixel", "hey ai", "bot"]),

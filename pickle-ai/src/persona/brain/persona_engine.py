@@ -5,6 +5,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+from collections import deque
+from difflib import SequenceMatcher
 
 import yaml
 
@@ -79,6 +81,11 @@ class PersonaBrain:
         self.persona = persona_config
         self.assembler = context_assembler
         self.last_response_time: datetime | None = None
+        self.last_trigger_source: str | None = None
+        
+        # Concurrency control and deduplication
+        self._processing_lock = False
+        self._recent_responses = deque(maxlen=5)
 
     def update_persona(self, persona_settings) -> None:
         """
@@ -97,7 +104,8 @@ class PersonaBrain:
         if hasattr(persona_settings, 'behavior'):
             behavior = persona_settings.behavior
             self.persona.behavior = {
-                'spontaneous_rate': behavior.spontaneous_rate,
+                'vision_rate': getattr(behavior, 'vision_rate', 0.6),
+                'speech_rate': getattr(behavior, 'speech_rate', 0.2),
                 'cooldown': behavior.cooldown,
                 'chat_batch_size': behavior.chat_batch_size,
                 'trigger_words': behavior.trigger_words,
@@ -109,136 +117,7 @@ class PersonaBrain:
             streamer=self.persona.streamer_name,
         )
 
-    def _build_system_prompt(self) -> str:
-        """Construct system prompt from persona config."""
-        style_rules = "\n".join(f"- {s}" for s in self.persona.style)
-
-        # Get streamer name from persona config, default to "the streamer" if not set
-        streamer_name = getattr(self.persona, 'streamer_name', None) or "the streamer"
-        
-        return f"""
-You are {self.persona.name}, an on-stream AI persona and co-host for {streamer_name}'s live IRL Twitch stream.
-
-THE STREAMER: {streamer_name}
-- You are here to support {streamer_name} and their chat
-- When addressing the streamer directly, use their name: {streamer_name}
-- You are {streamer_name}'s AI co-host and chat voice
-
-You DO NOT control the stream. Your role is to:
-- Represent what chat is generally thinking or asking
-- Help viewers understand what is happening on stream
-- Support and hype up {streamer_name} without stealing the spotlight
-- Stay consistent with your defined personality and style
-
-====================
-PERSONALITY
-====================
-{self.persona.personality}
-
-====================
-SPEAKING STYLE
-====================
-Your speaking style is defined by these rules:
-{style_rules}
-
-General style constraints:
-- Keep responses VERY short: 1–2 sentences maximum
-- Sound like a real Twitch co-host, not a customer support bot
-- Use casual language, but avoid mindless spam or single-word replies
-- Never repeat the same message multiple times
-- Avoid copying viewer messages verbatim unless it's essential
-
-====================
-INPUTS YOU SEE
-====================
-You receive context in the messages before the final user message, including:
-- Recent Twitch chat messages from viewers
-- Overshoot scene descriptions of the current stream (what is happening visually & in audio)
-- Short-term memory: recent conversation and your own previous responses
-- Long-term memory: important past events, running jokes, user preferences, etc.
-
-You NEVER see raw video or audio, only text descriptions.
-
-Think of the context as:
-- STREAM_STATE: What the streamer is doing right now, where they are, what just happened
-- CHAT_HISTORY: What individual chatters are saying
-- CHAT_SUMMARY (if present): A summary of chat's overall mood or repeated questions
-- MEMORY: Relevant past info retrieved from long-term memory
-
-Use all of this to be situationally aware and coherent over time.
-
-====================
-HOW TO THINK ABOUT CHAT
-====================
-Your job is to speak AS IF you are the "collective brain" of chat, but more clear and useful.
-
-Rules:
-- If many people in chat are asking the SAME question (e.g. "what game is this?", "where are we?"),
-  you answer that clearly once, in your style.
-- If chat is reacting strongly to something (hype, shock, cringe, laughter),
-  you briefly mirror that reaction but add context or commentary.
-- Ignore low-effort spam like single emotes, 1-word messages, or repeated nonsense
-  UNLESS it clearly reflects the whole chat's energy (e.g. everyone spamming after a big play).
-- Do NOT just say "poggers", "LUL", etc. by themselves. If you reference emotes, wrap them in a real sentence.
-- If only one or two viewers say something weird, do NOT treat it as the opinion of the whole chat.
-
-You are a helpful, opinionated summary of chat sentiment, not a parroting machine.
-
-====================
-HOW TO HELP {streamer_name.upper()}
-====================
-- You clarify what is happening on stream when chat seems confused.
-- You answer common chat questions so {streamer_name} doesn't have to repeat themselves.
-- You can remind chat of ongoing goals (sub goals, challenges, time remaining, what {streamer_name} said earlier).
-- You do NOT argue with {streamer_name} or undermine them.
-- If {streamer_name} is focused (e.g. in a tense moment), keep answers brief and supportive.
-
-If the context looks like {streamer_name} is busy or focusing, prefer shorter and calmer responses.
-
-====================
-SAFETY & TOS
-====================
-- Follow Twitch TOS and community guidelines.
-- Do NOT generate slurs, hate speech, explicit sexual content, or violent threats.
-- Avoid harassment, bullying, or doxxing.
-- Do NOT encourage dangerous behavior.
-- If chat or context contains unsafe content, you either:
-  - Gently steer the conversation away, or
-  - Briefly say you can't discuss that and move on.
-
-====================
-RESPONSE CONTENT RULES
-====================
-- 1–2 sentences MAX, no paragraphs.
-- No bullet points.
-- No emojis unless they match your defined style; if you use them, keep them minimal.
-- Act as if you are speaking out loud on stream.
-- Do NOT mention "system prompts", "Overshoot", "RAG", "vector databases", or any internal tools.
-- Do NOT describe the context structure (CHAT_HISTORY, MEMORY, etc.) to users.
-- You are simply {self.persona.name} on stream.
-
-When there are multiple possible things to comment on:
-- Prefer answering repeated viewer questions.
-- Then reacting to major stream events.
-- Ignore tiny, irrelevant details.
-
-====================
-OUTPUT FORMAT (VERY IMPORTANT)
-====================
-You MUST respond with valid JSON in this exact format:
-
-{{
-  "text": "your response here"
-}}
-
-Rules:
-- "text" must be a single string with your spoken response.
-- Do NOT wrap your JSON in code fences.
-- Do NOT add any extra fields.
-- Do NOT include explanations, comments, or any other text outside the JSON.
-
-If you cannot answer safely, respond with a short, safe line in "text".
-"""
+    # ... (skipping unchanged code) ...
 
     async def process(self, event: InputEvent) -> OutputEvent | None:
         """
@@ -266,65 +145,123 @@ If you cannot answer safely, respond with a short, safe line in "text".
             metadata=event.metadata,
         )
 
-        # Check if we should respond
-        if not self._should_respond(event):
+        # CHECK FOR COMBO: Chat -> Vision
+        # If last trigger was chat, and this is vision, 50% chance to force response + bypass cooldown
+        is_combo_trigger = False
+        if event.source == "vision" and self.last_trigger_source == "chat":
+            if random.random() < 0.5:
+                is_combo_trigger = True
+                logger.debug("combo_trigger_activated", type="chat_then_vision")
+
+        # Check if we should respond (unless combo forced)
+        if not is_combo_trigger and not self._should_respond(event):
             logger.debug("skipping_response", reason="criteria_not_met")
             return None
 
-        # Check cooldown
+        # Check cooldown (bypass if combo)
         cooldown = self.persona.behavior.get("cooldown", 3.0)
-        if self.last_response_time:
+        if not is_combo_trigger and self.last_response_time:
             elapsed = (datetime.now() - self.last_response_time).total_seconds()
             if elapsed < cooldown:
                 logger.debug("skipping_response", reason="cooldown", elapsed=elapsed)
                 return None
 
-        # Build messages using context assembler (includes LTM search)
-        system_prompt = self._build_system_prompt()
-        messages = self.assembler.build_messages(
-            current_input=event.content,
-            system_prompt=system_prompt,
-        )
-
-        # Get LLM response with structured output
-        try:
-            response = await self.llm.get_persona_response(messages)
-        except Exception as e:
-            logger.error("persona_llm_error", error=str(e))
+        # Concurrency check
+        if self._processing_lock:
+            logger.debug("skipping_response", reason="busy_processing")
             return None
 
-        text = response.text
+        self._processing_lock = True
+        try:
+            # Build messages using context assembler (includes LTM search)
+            system_prompt = self._build_system_prompt()
+            messages = self.assembler.build_messages(
+                current_input=event.content,
+                system_prompt=system_prompt,
+            )
 
-        # Store response in memory
-        self.assembler.process_response(text)
-        self.last_response_time = datetime.now()
+            # Get LLM response with structured output
+            try:
+                response = await self.llm.get_persona_response(messages)
+            except Exception as e:
+                logger.error("persona_llm_error", error=str(e))
+                return None
 
-        # Log memory stats
-        stats = self.assembler.get_memory_stats()
-        logger.info(
-            "persona_response",
-            text=text[:50],
-            source=event.source,
-            stm_count=stats["stm_count"],
-            ltm_count=stats["ltm_count"],
-        )
+            text = response.text
+            
+            # Deduplication check
+            if self._is_repetitive(text):
+                logger.info("skipping_response", reason="repetitive_content", text_preview=text[:30])
+                return None
 
-        return OutputEvent(
-            text=text,
-        )
+            # Store response in memory
+            self.assembler.process_response(text)
+            self.last_response_time = datetime.now()
+            self.last_trigger_source = event.source  # UPDATE LAST SOURCE
+            self._recent_responses.append(text)
+
+            # Log memory stats
+            stats = self.assembler.get_memory_stats()
+            logger.info(
+                "persona_response",
+                text=text[:50],
+                source=event.source,
+                is_combo=is_combo_trigger,
+                stm_count=stats["stm_count"],
+                ltm_count=stats["ltm_count"],
+            )
+
+            return OutputEvent(
+                text=text,
+            )
+        finally:
+            self._processing_lock = False
+
+    def _is_repetitive(self, text: str, threshold: float = 0.6) -> bool:
+        """Check if text is too similar to recent responses."""
+        if not text:
+            return False
+            
+        text_lower = text.lower().strip()
+        
+        for past_response in self._recent_responses:
+            past_lower = past_response.lower().strip()
+            
+            # direct match
+            if text_lower == past_lower:
+                return True
+                
+            # similarity ratio
+            similarity = SequenceMatcher(None, text_lower, past_lower).ratio()
+            if similarity > threshold:
+                return True
+                
+        return False
 
     def _should_respond(self, event: InputEvent) -> bool:
         """Decide if persona should respond to this event."""
-        # Always respond to chat messages
+        # Priority 1: Chat (Always respond to consensus/input)
         if event.source == "chat":
             logger.debug("responding", reason="chat_message")
             return True
         
-        # For vision, use spontaneous rate
-        spontaneous_rate = self.persona.behavior.get("spontaneous_rate", 0.15)
-        if random.random() < spontaneous_rate:
-            logger.debug("responding", reason="spontaneous")
-            return True
+        # Priority 2: Vision (Reactive visual triggers)
+        # Use vision_rate to determine if we should comment on what we see
+        if event.source == "vision":
+            vision_rate = self.persona.behavior.get("vision_rate", 0.4)
+            if random.random() < vision_rate:
+                logger.debug("responding", reason="vision_trigger")
+                return True
+            return False
+
+        # Priority 3: Speech (Lower frequency)
+        # Use speech_rate to determine if we should reply to the streamer
+        if event.source == "speech":
+            speech_rate = self.persona.behavior.get("speech_rate", 0.2)
+            if random.random() < speech_rate:
+                logger.debug("responding", reason="speech_trigger")
+                return True
+            return False
 
         return False
 

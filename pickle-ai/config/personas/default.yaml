@@ -22,11 +22,14 @@ voice:
   speed: 1.0
 
 behavior:
-  # Probability of spontaneous commentary on vision events (0-1)
-  spontaneous_rate: 0.20
+  # Probability of reacting to visual events (Priority 2)
+  vision_rate: 0.60
+
+  # Probability of reacting to speech (Priority 3 - Lower frequency)
+  speech_rate: 0.20
 
   # Minimum seconds between responses
-  cooldown: 5.0
+  cooldown: 8.0
 
   # Max chat messages to batch before processing
-  chat_batch_size: 10
+  chat_batch_size: 15

@@ -83,32 +83,8 @@ fi
 # Check if required environment variables are set
 source .env 2>/dev/null || true
 
-# Ollama model to use (good balance of speed/quality for M3 Pro)
-OLLAMA_MODEL="${OLLAMA_MODEL:-phi3.5:latest}"
-
-# Check if Ollama is installed
-if ! command -v ollama &> /dev/null; then
-    echo -e "${RED}Error: Ollama not found.${NC}"
-    echo -e "${YELLOW}Install Ollama from: https://ollama.ai${NC}"
-    echo -e "${YELLOW}  macOS: brew install ollama${NC}"
-    exit 1
-fi
-
-# Check if Ollama is running
-if ! curl -s http://localhost:11434/api/tags > /dev/null 2>&1; then
-    echo -e "${BLUE}Starting Ollama server...${NC}"
-    ollama serve &
-    OLLAMA_PID=$!
-    sleep 3
-fi
-
-# Pull the model if not already present
-echo -e "${BLUE}Ensuring Ollama model '$OLLAMA_MODEL' is available...${NC}"
-if ! ollama list | grep -q "$OLLAMA_MODEL"; then
-    echo -e "${YELLOW}Pulling $OLLAMA_MODEL (this may take a few minutes)...${NC}"
-    ollama pull "$OLLAMA_MODEL"
-fi
-echo -e "${GREEN}Ollama model ready!${NC}"
+# Using Cerebras (Cloud)
+echo -e "${GREEN}Using Cerebras Cloud for inference.${NC}"
 
 if [ -z "$TWITCH_BOT_TOKEN" ] || [ "$TWITCH_BOT_TOKEN" = "oauth:..." ]; then
     echo -e "${RED}Error: TWITCH_BOT_TOKEN not set in .env${NC}"

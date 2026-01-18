@@ -8,8 +8,9 @@ from pydantic import Field
 class Settings(BaseSettings):
     """Application settings loaded from environment."""
 
-    # Ollama (local LLM)
-    ollama_model: str = Field("phi3.5:latest", alias="OLLAMA_MODEL")
+    # Cerebras (Cloud LLM)
+    cerebras_api_key: str = Field(..., alias="CEREBRAS_API_KEY")
+    cerebras_model: str = Field("llama-3.3-70b", alias="CEREBRAS_MODEL")
 
     # Deepgram API
     deepgram_api_key: str = Field(..., alias="DEEPGRAM_API_KEY")

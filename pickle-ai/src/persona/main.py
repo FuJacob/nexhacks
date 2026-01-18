@@ -44,8 +44,11 @@ async def main() -> None:
         persona_config = PersonaConfig.from_yaml(settings.persona_config)
         logger.info("persona_loaded", name=persona_config.name)
 
-        # Initialize components - using Ollama (local LLM)
-        llm_client = LLMClient(model=settings.ollama_model)
+        # Initialize components - using Cerebras (Cloud LLM)
+        llm_client = LLMClient(
+            api_key=settings.cerebras_api_key,
+            model=settings.cerebras_model,
+        )
 
         # Initialize token compressor
         compressor = None

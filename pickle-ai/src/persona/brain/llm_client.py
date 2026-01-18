@@ -1,18 +1,16 @@
-"""Async Ollama client wrapper."""
+"""Async Cerebras client wrapper."""
 
 import json
+import asyncio
 from typing import Type, TypeVar
-import aiohttp
 from pydantic import BaseModel, Field
+from cerebras.cloud.sdk import Cerebras
 
 from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
-
-# Ollama API endpoint
-OLLAMA_BASE_URL = "http://localhost:11434"
 
 
 class PersonaResponse(BaseModel):
@@ -21,18 +19,18 @@ class PersonaResponse(BaseModel):
 
 
 class LLMClient:
-    """Async Ollama client wrapper with structured outputs."""
+    """Async wrapper for Cerebras SDK with structured outputs."""
 
-    def __init__(self, api_key: str = "", model: str = "phi3.5:latest"):
+    def __init__(self, api_key: str, model: str = "llama-3.3-70b"):
         """
-        Initialize Ollama client.
+        Initialize Cerebras client.
         
         Args:
-            api_key: Not used for Ollama (local), kept for interface compatibility
-            model: Ollama model name (default: phi3.5:latest)
+            api_key: Cerebras API key
+            model: Model name (default: llama-3.3-70b)
         """
         self.model = model
-        self.base_url = OLLAMA_BASE_URL
+        self.client = Cerebras(api_key=api_key)
 
     async def chat_completion(
         self,
@@ -55,60 +53,45 @@ class LLMClient:
         """
         content = ""
         try:
-            # Build Ollama request
-            # Convert system message to Ollama format
-            ollama_messages = []
-            for msg in messages:
-                ollama_messages.append({
-                    "role": msg["role"],
-                    "content": msg["content"]
-                })
+            # Prepare format option
+            response_format = {"type": "json_object"} if response_schema else None
 
-            # Build request payload
-            payload = {
-                "model": self.model,
-                "messages": ollama_messages,
-                "stream": False,
-                "options": {
-                    "temperature": temperature,
-                    "num_predict": max_tokens,
-                }
-            }
+            # Run synchronous Cerebras call in a thread
+            completion = await asyncio.to_thread(
+                self.client.chat.completions.create,
+                messages=messages,
+                model=self.model,
+                temperature=temperature,
+                max_completion_tokens=max_tokens,
+                response_format=response_format,
+            )
 
-            # Add JSON schema if provided (Ollama structured outputs)
-            if response_schema:
-                payload["format"] = response_schema.model_json_schema()
-            else:
-                payload["format"] = "json"
-
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    f"{self.base_url}/api/chat",
-                    json=payload,
-                    timeout=aiohttp.ClientTimeout(total=30)
-                ) as response:
-                    if response.status != 200:
-                        error_text = await response.text()
-                        logger.error("ollama_api_error", status=response.status, error=error_text)
-                        raise Exception(f"Ollama API error: {response.status}")
-                    
-                    data = await response.json()
-                    content = data.get("message", {}).get("content", "")
+            content = completion.choices[0].message.content
 
             # Parse and validate with Pydantic if schema provided
             if response_schema:
-                result = response_schema.model_validate_json(content)
+                # If content is already a dict (which happens sometimes with json mode), use it
+                # Otherwise parse string
+                if isinstance(content, dict):
+                    result = response_schema.model_validate(content)
+                else:
+                    result = response_schema.model_validate_json(content)
                 return result.model_dump()
             else:
-                return json.loads(content)
-
-        except json.JSONDecodeError as e:
-            logger.error("llm_json_parse_error", error=str(e), content=content[:100] if content else "empty")
-            return {"text": content if content else "I'm having trouble responding right now."}
+                # Try to parse as JSON if it looks like one, otherwise return structure
+                try:
+                    return json.loads(content)
+                except:
+                    return {"text": content}
 
         except Exception as e:
-            logger.error("llm_error", error=str(e))
-            raise
+            logger.error("llm_error", error=str(e), content=content[:100] if content else "empty")
+            # If JSON parsing failed but we have text, return it as fallback
+            if content:
+                # Try to salvage text if it's not valid JSON
+                return {"text": content}
+            
+            return {"text": "I'm having trouble responding right now."}
 
     async def get_persona_response(
         self,
@@ -118,7 +101,6 @@ class LLMClient:
     ) -> PersonaResponse:
         """
         Get a structured persona response.
-        Uses Ollama's structured output to guarantee valid JSON.
         """
         result = await self.chat_completion(
             messages=messages,
@@ -126,4 +108,12 @@ class LLMClient:
             temperature=temperature,
             response_schema=PersonaResponse,
         )
-        return PersonaResponse(**result) if isinstance(result, dict) else result
+        # Handle case where result is already a dict
+        if isinstance(result, dict):
+            # If 'text' key missing, use the whole result as text/fallback
+            if "text" not in result:
+                # If keys overlap or if it's weird, just dump str
+                result = {"text": str(result)}
+            return PersonaResponse(**result)
+        
+        return PersonaResponse(text=str(result))
