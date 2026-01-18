@@ -88,13 +88,14 @@ async def main() -> None:
             context_assembler=context_assembler,
         )
 
+        avatar = AvatarProcessor()
+
         tts = TTSProcessor(
             api_key=settings.deepgram_api_key,
             output_device=settings.audio_output_device,
             lang="en",
+            avatar_processor=avatar,
         )
-
-        avatar = AvatarProcessor()
 
         # Create orchestrator
         orchestrator = Orchestrator(

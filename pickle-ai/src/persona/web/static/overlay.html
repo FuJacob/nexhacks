@@ -1,227 +1,508 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AI Persona Overlay</title>
+
+    <!-- Import map for Three.js and TalkingHead -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+          "talkinghead": "https://cdn.jsdelivr.net/gh/met4citizen/TalkingHead@1.7/modules/talkinghead.mjs"
+        }
+      }
+    </script>
+
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-        body {
-            background: transparent;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
+      body {
+        background: transparent;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        overflow: hidden;
+      }
 
-        .avatar-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-        }
+      .avatar-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
 
-        .avatar {
-            width: 150px;
-            height: 150px;
-            border-radius: 50%;
-            background: #6b7280;
-            transition: all 0.3s ease;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-        }
+      #avatar-canvas {
+        width: 400px;
+        height: 400px;
+        border-radius: 12px;
+      }
 
-        .avatar.speaking {
-            animation: pulse 0.8s infinite;
-        }
+      .emotion-label {
+        color: white;
+        font-size: 14px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 4px 12px;
+        border-radius: 12px;
+        opacity: 0.8;
+      }
 
-        .avatar-face {
-            font-size: 60px;
-            transition: all 0.3s ease;
-        }
+      .status {
+        position: fixed;
+        bottom: 10px;
+        right: 10px;
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.5);
+      }
 
-        /* Emotion colors */
-        .avatar.neutral {
-            background: #6b7280;
-        }
+      .status.connected {
+        color: #22c55e;
+      }
 
-        .avatar.happy {
-            background: #fbbf24;
-        }
+      .status.disconnected {
+        color: #ef4444;
+      }
 
-        .avatar.excited {
-            background: #f97316;
-        }
+      .status.loading {
+        color: #fbbf24;
+      }
 
-        .avatar.surprised {
-            background: #3b82f6;
-        }
+      /* Fallback emoji avatar (shown while 3D loads) */
+      .avatar-fallback {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        background: #6b7280;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 60px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      }
 
-        .avatar.thinking {
-            background: #8b5cf6;
-        }
+      .avatar-fallback.hidden {
+        display: none;
+      }
 
-        .avatar.laughing {
-            background: #22c55e;
-        }
-
-        .emotion-label {
-            color: white;
-            font-size: 14px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 4px 12px;
-            border-radius: 12px;
-            opacity: 0.8;
-        }
-
-        .status {
-            position: fixed;
-            bottom: 10px;
-            right: 10px;
-            font-size: 10px;
-            color: rgba(255, 255, 255, 0.5);
-        }
-
-        .status.connected {
-            color: #22c55e;
-        }
-
-        .status.disconnected {
-            color: #ef4444;
-        }
-
-        @keyframes pulse {
-            0% {
-                transform: scale(1);
-                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-            }
-            50% {
-                transform: scale(1.08);
-                box-shadow: 0 4px 30px rgba(255, 255, 255, 0.2);
-            }
-            100% {
-                transform: scale(1);
-                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-            }
-        }
-
-        /* Emotion-specific faces */
-        .avatar.neutral .avatar-face::before { content: '😐'; }
-        .avatar.happy .avatar-face::before { content: '😊'; }
-        .avatar.excited .avatar-face::before { content: '🤩'; }
-        .avatar.surprised .avatar-face::before { content: '😮'; }
-        .avatar.thinking .avatar-face::before { content: '🤔'; }
-        .avatar.laughing .avatar-face::before { content: '😂'; }
+      #avatar-canvas.hidden {
+        display: none;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div class="avatar-container">
-        <div id="avatar" class="avatar neutral">
-            <span class="avatar-face"></span>
-        </div>
-        <div id="emotion-label" class="emotion-label">neutral</div>
+      <!-- Fallback emoji while 3D avatar loads -->
+      <div id="avatar-fallback" class="avatar-fallback">😐</div>
+      <!-- 3D Avatar canvas container -->
+      <div id="avatar-canvas" class="hidden"></div>
+      <div id="emotion-label" class="emotion-label">neutral</div>
     </div>
     <div id="status" class="status disconnected">disconnected</div>
 
-    <script>
-        const avatar = document.getElementById('avatar');
-        const emotionLabel = document.getElementById('emotion-label');
-        const statusEl = document.getElementById('status');
+    <script type="module">
+      import { TalkingHead } from "talkinghead";
 
-        let ws = null;
-        let reconnectAttempts = 0;
-        const maxReconnectAttempts = 10;
+      // DOM Elements
+      const avatarCanvas = document.getElementById("avatar-canvas");
+      const avatarFallback = document.getElementById("avatar-fallback");
+      const emotionLabel = document.getElementById("emotion-label");
+      const statusEl = document.getElementById("status");
 
-        function connect() {
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}/ws`;
+      // TalkingHead instance
+      let head = null;
+      let headReady = false;
+      let isStreaming = false;
+      let streamSampleRate = 22050;
 
-            ws = new WebSocket(wsUrl);
+      // WebSocket state
+      let ws = null;
+      let reconnectAttempts = 0;
+      const maxReconnectAttempts = 10;
 
-            ws.onopen = () => {
-                console.log('WebSocket connected');
-                statusEl.textContent = 'connected';
-                statusEl.className = 'status connected';
-                reconnectAttempts = 0;
-            };
+      // Emotion to emoji/gesture mapping for TalkingHead
+      const emotionMap = {
+        neutral: { mood: "neutral", emoji: "😐" },
+        happy: { mood: "happy", emoji: "😊" },
+        excited: { mood: "happy", emoji: "🤩" },
+        surprised: { mood: "surprised", emoji: "😮" },
+        thinking: { mood: "neutral", emoji: "🤔" },
+        laughing: { mood: "happy", emoji: "😂" },
+        sad: { mood: "sad", emoji: "😢" },
+        angry: { mood: "angry", emoji: "😠" },
+        confused: { mood: "neutral", emoji: "😕" },
+      };
 
-            ws.onclose = () => {
-                console.log('WebSocket disconnected');
-                statusEl.textContent = 'disconnected';
-                statusEl.className = 'status disconnected';
+      // Current state
+      let currentEmotion = "neutral";
+      let isSpeaking = false;
 
-                // Attempt reconnect
-                if (reconnectAttempts < maxReconnectAttempts) {
-                    reconnectAttempts++;
-                    const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
-                    console.log(`Reconnecting in ${delay}ms...`);
-                    setTimeout(connect, delay);
-                }
-            };
+      /**
+       * Initialize the TalkingHead 3D avatar
+       */
+      async function initTalkingHead() {
+        statusEl.textContent = "loading avatar...";
+        statusEl.className = "status loading";
 
-            ws.onerror = (error) => {
-                console.error('WebSocket error:', error);
-            };
+        try {
+          console.log("Creating TalkingHead instance...");
 
-            ws.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    handleMessage(data);
-                } catch (e) {
-                    console.error('Failed to parse message:', e);
-                }
-            };
+          // Create TalkingHead instance
+          head = new TalkingHead(avatarCanvas, {
+            ttsEndpoint: null, // We'll handle TTS separately
+            lipsyncModules: ["en"],
+            cameraView: "head", // Focus on head/face
+            cameraDistance: 0.6,
+            cameraX: 0,
+            cameraY: 0,
+            cameraRotateX: 0,
+            cameraRotateY: 0,
+            cameraPanX: 0,
+            cameraPanY: 0,
+            lightAmbientColor: 0xffffff,
+            lightAmbientIntensity: 1.2,
+            lightDirectColor: 0xffffff,
+            lightDirectIntensity: 0.8,
+            lightDirectPhi: 1.0,
+            lightDirectTheta: 2.0,
+            lightSpotIntensity: 0,
+            avatarMood: "neutral",
+          });
+
+          console.log("Loading avatar GLB...");
+
+          // Use only the local avatar.glb
+          const avatarUrl = `${window.location.origin}/static/avatar.glb`;
+
+          console.log("Loading avatar from:", avatarUrl);
+          await head.showAvatar({
+            url: avatarUrl,
+            body: "F",
+            avatarMood: "neutral",
+            lipsyncLang: "en",
+          });
+
+          // Avatar loaded successfully
+          headReady = true;
+          avatarFallback.classList.add("hidden");
+          avatarCanvas.classList.remove("hidden");
+
+          console.log("TalkingHead avatar loaded successfully");
+
+          // Apply current emotion if any
+          if (currentEmotion) {
+            await setEmotion(currentEmotion);
+          }
+        } catch (error) {
+          console.error("Failed to load TalkingHead avatar:", error);
+          console.error("Error details:", error.message, error.stack);
+          statusEl.textContent = "avatar load failed";
+          statusEl.className = "status disconnected";
+          throw error;
         }
+      }
 
-        function handleMessage(data) {
-            console.log('Received:', data);
+      /**
+       * Connect to WebSocket server
+       */
+      function connect() {
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
 
-            switch (data.type) {
-                case 'init':
-                    setEmotion(data.emotion || 'neutral');
-                    setSpeaking(data.speaking || false);
-                    break;
+        ws = new WebSocket(wsUrl);
 
-                case 'emotion':
-                    setEmotion(data.value);
-                    break;
+        ws.onopen = () => {
+          console.log("WebSocket connected");
+          statusEl.textContent = "connected";
+          statusEl.className = "status connected";
+          reconnectAttempts = 0;
+        };
 
-                case 'speaking':
-                    setSpeaking(data.value);
-                    break;
+        ws.onclose = () => {
+          console.log("WebSocket disconnected");
+          statusEl.textContent = "disconnected";
+          statusEl.className = "status disconnected";
+
+          // Attempt reconnect
+          if (reconnectAttempts < maxReconnectAttempts) {
+            reconnectAttempts++;
+            const delay = Math.min(
+              1000 * Math.pow(2, reconnectAttempts),
+              30000,
+            );
+            console.log(`Reconnecting in ${delay}ms...`);
+            setTimeout(connect, delay);
+          }
+        };
+
+        ws.onerror = (error) => {
+          console.error("WebSocket error:", error);
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            handleMessage(data);
+          } catch (e) {
+            console.error("Failed to parse message:", e);
+          }
+        };
+      }
+
+      /**
+       * Handle incoming WebSocket messages
+       */
+      async function handleMessage(data) {
+        console.log("Received:", data);
+
+        switch (data.type) {
+          case "init":
+            await setEmotion(data.emotion || "neutral");
+            setSpeaking(data.speaking || false);
+            break;
+
+          case "emotion":
+            await setEmotion(data.value);
+            break;
+
+          case "speaking":
+            setSpeaking(data.value);
+            break;
+
+          case "stream_start":
+            // Start audio streaming session
+            if (headReady && head) {
+              streamSampleRate = data.sample_rate || 22050;
+              startAudioStream(streamSampleRate);
             }
-        }
+            break;
 
-        function setEmotion(emotion) {
-            // Remove all emotion classes
-            avatar.className = 'avatar';
-            // Add new emotion class
-            avatar.classList.add(emotion);
-            // Update label
-            emotionLabel.textContent = emotion;
-        }
-
-        function setSpeaking(speaking) {
-            if (speaking) {
-                avatar.classList.add('speaking');
-            } else {
-                avatar.classList.remove('speaking');
+          case "stream_audio":
+            // Receive and play audio chunk
+            if (headReady && head && isStreaming) {
+              const audioData = base64ToArrayBuffer(data.audio);
+              feedAudioChunk(audioData, data.text);
             }
-        }
+            break;
 
-        // Start connection
+          case "stream_end":
+            // End audio streaming session
+            if (headReady && head && isStreaming) {
+              stopAudioStream();
+            }
+            break;
+
+          case "speak":
+            // Handle text-to-speech with lip sync (legacy fallback)
+            if (data.text && headReady) {
+              await speakText(data.text, data.options);
+            }
+            break;
+
+          case "audio":
+            // Handle audio playback with lip sync (legacy fallback)
+            if (data.url && headReady) {
+              await playAudioWithLipSync(data.url, data.visemes);
+            }
+            break;
+        }
+      }
+
+      /**
+       * Set the avatar's emotion/mood
+       */
+      async function setEmotion(emotion) {
+        currentEmotion = emotion;
+        const mapping = emotionMap[emotion] || emotionMap["neutral"];
+
+        // Update label
+        emotionLabel.textContent = emotion;
+
+        // Always update fallback emoji (for when 3D doesn't load)
+        avatarFallback.textContent = mapping.emoji;
+
+        if (headReady && head) {
+          try {
+            // Set the mood for idle behavior
+            head.setMood(mapping.mood);
+
+            // Play the emoji gesture for immediate expression
+            head.playGesture(mapping.emoji, 2.0);
+
+            console.log(
+              `Emotion set to: ${emotion} (mood: ${mapping.mood}, gesture: ${mapping.emoji})`,
+            );
+          } catch (error) {
+            console.error("Failed to set emotion:", error);
+          }
+        }
+      }
+
+      /**
+       * Set speaking state (visual indicator)
+       */
+      function setSpeaking(speaking) {
+        isSpeaking = speaking;
+
+        if (headReady && head) {
+          // TalkingHead handles speaking animation automatically during speech
+          // This is just for state tracking
+          console.log(`Speaking state: ${speaking}`);
+        }
+      }
+
+      /**
+       * Speak text using TalkingHead's built-in TTS
+       */
+      async function speakText(text, options = {}) {
+        if (!headReady || !head) return;
+
+        try {
+          await head.speakText(text, {
+            ttsLang: options.lang || "en-US",
+            ttsVoice: options.voice || "en-US-Wavenet-F",
+            ttsRate: options.rate || 1.0,
+            ttsPitch: options.pitch || 1.0,
+            ttsVolume: options.volume || 1.0,
+            lipsyncLang: "en",
+            ...options,
+          });
+        } catch (error) {
+          console.error("Failed to speak text:", error);
+        }
+      }
+
+      /**
+       * Play audio file with lip sync
+       */
+      async function playAudioWithLipSync(audioUrl, visemes = null) {
+        if (!headReady || !head) return;
+
+        try {
+          await head.speakAudio({
+            audio: audioUrl,
+            lipsyncLang: "en",
+          });
+        } catch (error) {
+          console.error("Failed to play audio:", error);
+        }
+      }
+
+      /**
+       * Start audio streaming session (for real-time TTS)
+       */
+      function startAudioStream(sampleRate = 22050) {
+        if (!headReady || !head || isStreaming) return;
+
+        console.log("Starting audio stream with sample rate:", sampleRate);
+
+        head.streamStart(
+          {
+            sampleRate: sampleRate,
+            lipsyncLang: "en",
+            lipsyncType: "words", // Use word-based lip-sync
+          },
+          () => {
+            console.log("Audio stream playback started");
+          },
+          () => {
+            console.log("Audio stream playback ended");
+            isStreaming = false;
+          },
+        );
+
+        isStreaming = true;
+      }
+
+      /**
+       * Feed audio chunk to stream with text for lip-sync
+       */
+      function feedAudioChunk(audioData, text = "") {
+        if (!headReady || !head || !isStreaming) return;
+
+        // Convert ArrayBuffer to Int16Array for TalkingHead
+        const pcmData = new Int16Array(audioData);
+
+        // Simple word timing generation (TalkingHead will generate visemes)
+        // For better lip-sync, backend should send word timestamps
+        if (text) {
+          const words = text.trim().split(/\\s+/);
+          const duration = (pcmData.length / streamSampleRate) * 1000; // ms
+          const wordDuration = duration / words.length;
+
+          const wtimes = words.map((_, i) => i * wordDuration);
+          const wdurations = words.map(() => wordDuration);
+
+          head.streamAudio({
+            audio: pcmData,
+            words: words,
+            wtimes: wtimes,
+            wdurations: wdurations,
+          });
+        } else {
+          // No text, just play audio
+          head.streamAudio({
+            audio: pcmData,
+          });
+        }
+      }
+
+      /**
+       * Stop audio stream
+       */
+      function stopAudioStream() {
+        if (!headReady || !head || !isStreaming) return;
+
+        console.log("Stopping audio stream");
+        head.streamNotifyEnd();
+        isStreaming = false;
+      }
+
+      /**
+       * Convert base64 string to ArrayBuffer
+       */
+      function base64ToArrayBuffer(base64) {
+        const binaryString = atob(base64);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes.buffer;
+      }
+
+      // Initialize on page load
+      async function init() {
+        // Start loading the 3D avatar
+        initTalkingHead();
+
+        // Connect to WebSocket
         connect();
+      }
+
+      // Start initialization
+      init();
+
+      // Expose functions for debugging
+      window.talkingHead = {
+        head: () => head,
+        setEmotion,
+        speakText,
+        playAudioWithLipSync,
+        startAudioStream,
+        feedAudioChunk,
+        stopAudioStream,
+      };
     </script>
-</body>
+  </body>
 </html>

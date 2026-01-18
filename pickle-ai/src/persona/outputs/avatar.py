@@ -1,6 +1,7 @@
 """Avatar overlay control via WebSocket."""
 
 import asyncio
+import base64
 import json
 from typing import Any
 
@@ -76,3 +77,29 @@ class AvatarProcessor:
             "emotion": self.current_emotion,
             "speaking": self.is_speaking,
         }))
+
+    async def stream_audio_start(self, sample_rate: int = 22050) -> None:
+        """Notify clients to start audio stream."""
+        await self.broadcast({
+            "type": "stream_start",
+            "sample_rate": sample_rate,
+        })
+        logger.debug("avatar_stream_started", sample_rate=sample_rate)
+
+    async def stream_audio_chunk(self, audio_data: bytes, text: str = "") -> None:
+        """Send audio chunk to clients for lip-sync."""
+        # Encode audio as base64 for JSON transport
+        audio_b64 = base64.b64encode(audio_data).decode('utf-8')
+        await self.broadcast({
+            "type": "stream_audio",
+            "audio": audio_b64,
+            "text": text,
+        })
+        logger.debug("avatar_audio_chunk_sent", size=len(audio_data))
+
+    async def stream_audio_end(self) -> None:
+        """Notify clients that stream has ended."""
+        await self.broadcast({
+            "type": "stream_end",
+        })
+        logger.debug("avatar_stream_ended")
