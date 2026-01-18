@@ -14,6 +14,16 @@ class Settings(BaseSettings):
     # Deepgram API
     deepgram_api_key: str = Field(..., alias="DEEPGRAM_API_KEY")
 
+    # Token Compression (The Token Company)
+    token_company_api_key: str = Field("", alias="TOKEN_COMPANY_API_KEY")
+    compression_enabled: bool = Field(True, alias="COMPRESSION_ENABLED")
+    compression_aggressiveness: float = Field(0.5, alias="COMPRESSION_AGGRESSIVENESS")
+
+    # Vision (Overshoot AI)
+    overshoot_api_key: str = Field("", alias="OVERSHOOT_API_KEY")
+    vision_enabled: bool = Field(False, alias="VISION_ENABLED")
+    vision_server_url: str = Field("http://localhost:3001", alias="VISION_SERVER_URL")
+
     # Twitch
     twitch_bot_token: str = Field(..., alias="TWITCH_BOT_TOKEN")
     twitch_client_id: str = Field(..., alias="TWITCH_CLIENT_ID")

@@ -1,0 +1,22 @@
+{
+  "name": "vision-server",
+  "version": "1.0.0",
+  "description": "Overshoot AI vision sidecar server for AI Persona",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "fastify": "^4.26.0",
+    "@fastify/cors": "^9.0.0",
+    "@fastify/websocket": "^10.0.0",
+    "overshoot": "^1.0.1",
+    "dotenv": "^16.4.0",
+    "pino-pretty": "^11.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

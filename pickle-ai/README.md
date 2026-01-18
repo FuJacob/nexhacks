@@ -26,7 +26,7 @@ A sophisticated AI companion designed for IRL Twitch streamers. This application
 
 ```bash
 git clone <repository_url>
-cd ai-persona
+cd pickle-ai
 ```
 
 ### 2. Environment Setup

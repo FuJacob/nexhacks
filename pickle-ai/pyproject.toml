@@ -1,5 +1,5 @@
 [project]
-name = "ai-persona"
+name = "pickle-ai"
 version = "0.1.0"
 description = "AI Persona companion for IRL Twitch streamers"
 readme = "README.md"
@@ -18,6 +18,10 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "structlog>=24.1.0",
     "deepgram-sdk>=3.9.0,<4.0.0",
+    "chromadb>=0.4.0",
+    "sentence-transformers>=2.2.0",
+    "tokenc>=0.1.0",
+    "aiohttp>=3.9.0",
 ]
 
 [build-system]
@@ -28,4 +32,4 @@ build-backend = "hatchling.build"
 packages = ["src/persona", "config"]
 
 [project.scripts]
-ai-persona = "src.persona.main:run"
+pickle-ai = "src.persona.main:run"
