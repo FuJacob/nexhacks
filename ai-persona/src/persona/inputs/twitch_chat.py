@@ -139,12 +139,16 @@ class TwitchChatProcessor(commands.Bot, InputProcessor):
         """Stop the Twitch chat processor."""
         self._running = False
 
-        if self._batch_task:
+        if self._batch_task and not self._batch_task.done():
             self._batch_task.cancel()
             try:
                 await self._batch_task
             except asyncio.CancelledError:
                 pass
 
-        await self.close()
+        try:
+            await self.close()
+        except Exception as e:
+            logger.warning("twitch_close_error", error=str(e))
+        
         logger.info("twitch_processor_stopped")

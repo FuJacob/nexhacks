@@ -24,6 +24,10 @@ class Settings(BaseSettings):
 
     # Audio
     audio_output_device: str = Field("MacBook Pro Speakers", alias="AUDIO_OUTPUT_DEVICE")
+    
+    # Avatar TTS mode: Use TalkingHead's built-in TTS instead of Deepgram
+    # Set to "true" to enable lip-synced avatar speech
+    use_avatar_tts: bool = Field(False, alias="USE_AVATAR_TTS")
 
     # Server
     host: str = Field("127.0.0.1", alias="HOST")

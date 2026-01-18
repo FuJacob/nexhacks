@@ -6,7 +6,7 @@ import os
 import subprocess
 import tempfile
 import wave
-from typing import Callable, Awaitable
+from typing import Callable, Awaitable, Optional
 
 import numpy as np
 import sounddevice as sd
@@ -22,6 +22,7 @@ class TTSProcessor:
     """
     Text-to-speech processor using Deepgram.
     Outputs audio to virtual audio cable for OBS capture.
+    Supports integration with TalkingHead avatar for lip-sync.
     """
 
     def __init__(
@@ -31,12 +32,14 @@ class TTSProcessor:
         lang: str = "en",
         sample_rate: int = 24000,
         voice_model: str = "aura-asteria-en",
+        use_avatar_tts: bool = False,  # Use TalkingHead's TTS instead
     ):
         self.api_key = api_key
         self.output_device = output_device
         self.lang = lang
         self.sample_rate = sample_rate
         self.voice_model = voice_model
+        self.use_avatar_tts = use_avatar_tts
         
         # Initialize Deepgram client
         self.client = DeepgramClient(api_key)
@@ -46,12 +49,19 @@ class TTSProcessor:
         self._running = False
         self._speak_task: asyncio.Task | None = None
         self._on_speaking_change: Callable[[bool], Awaitable[None]] | None = None
+        self._on_speak_text: Callable[[str], Awaitable[None]] | None = None
 
     def set_speaking_callback(
         self, callback: Callable[[bool], Awaitable[None]]
     ) -> None:
         """Set callback for speaking state changes."""
         self._on_speaking_change = callback
+
+    def set_speak_text_callback(
+        self, callback: Callable[[str], Awaitable[None]]
+    ) -> None:
+        """Set callback to send text to avatar for lip-sync TTS."""
+        self._on_speak_text = callback
 
     async def start(self) -> None:
         """Start the TTS processor."""
@@ -92,8 +102,17 @@ class TTSProcessor:
                 if self._on_speaking_change:
                     await self._on_speaking_change(True)
 
-                # Generate and play audio
-                await self._speak(text)
+                # If using avatar TTS, send text to avatar for lip-sync
+                if self.use_avatar_tts and self._on_speak_text:
+                    await self._on_speak_text(text)
+                    # Avatar handles playback, just wait a bit for it to finish
+                    # Estimate ~150ms per word for natural speech
+                    word_count = len(text.split())
+                    wait_time = max(1.0, word_count * 0.15)
+                    await asyncio.sleep(wait_time)
+                else:
+                    # Generate and play audio with Deepgram
+                    await self._speak(text)
 
                 # Notify speaking stopped
                 self.speaking = False

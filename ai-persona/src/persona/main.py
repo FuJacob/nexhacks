@@ -51,6 +51,7 @@ async def main() -> None:
             api_key=settings.deepgram_api_key,
             output_device=settings.audio_output_device,
             lang="en",
+            use_avatar_tts=settings.use_avatar_tts,
         )
 
         avatar = AvatarProcessor()

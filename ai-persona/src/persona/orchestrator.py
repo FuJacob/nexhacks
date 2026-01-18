@@ -36,6 +36,9 @@ class Orchestrator:
 
         # Connect TTS speaking state to avatar
         self.tts.set_speaking_callback(self.avatar.set_speaking)
+        
+        # Connect TTS to avatar for lip-sync (when using avatar's TTS)
+        self.tts.set_speak_text_callback(self.avatar.speak_text)
 
     def add_input(self, processor: InputProcessor) -> None:
         """Add an input processor."""

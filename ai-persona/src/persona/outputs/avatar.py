@@ -2,7 +2,7 @@
 
 import asyncio
 import json
-from typing import Any
+from typing import Any, Optional
 
 from ..brain.persona_engine import OutputEvent
 from ..utils.logging import get_logger
@@ -13,7 +13,8 @@ logger = get_logger(__name__)
 class AvatarProcessor:
     """
     Controls visual avatar overlay via WebSocket.
-    Sends emotion and speaking state updates to browser clients.
+    Sends emotion, speaking state, and speech updates to browser clients.
+    Supports TalkingHead 3D avatar with lip-sync capabilities.
     """
 
     def __init__(self):
@@ -41,6 +42,48 @@ class AvatarProcessor:
                 "value": speaking,
             })
             logger.debug("avatar_speaking_changed", speaking=speaking)
+
+    async def speak_text(
+        self,
+        text: str,
+        lang: str = "en-US",
+        voice: Optional[str] = None,
+        rate: float = 1.0,
+        pitch: float = 1.0,
+        volume: float = 1.0,
+    ) -> None:
+        """
+        Send text to avatar for TTS with lip-sync.
+        Uses TalkingHead's built-in text-to-speech.
+        """
+        await self.broadcast({
+            "type": "speak",
+            "text": text,
+            "options": {
+                "lang": lang,
+                "voice": voice,
+                "rate": rate,
+                "pitch": pitch,
+                "volume": volume,
+            },
+        })
+        logger.debug("avatar_speak_text", text=text[:50])
+
+    async def play_audio(
+        self,
+        audio_url: str,
+        visemes: Optional[list] = None,
+    ) -> None:
+        """
+        Send audio URL to avatar for playback with lip-sync.
+        Optionally include viseme data for precise lip movements.
+        """
+        await self.broadcast({
+            "type": "audio",
+            "url": audio_url,
+            "visemes": visemes,
+        })
+        logger.debug("avatar_play_audio", url=audio_url)
 
     async def broadcast(self, data: dict[str, Any]) -> None:
         """Send update to all connected clients."""
