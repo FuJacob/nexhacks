@@ -14,24 +14,16 @@ logger = get_logger(__name__)
 class AvatarProcessor:
     """
     Controls visual avatar overlay via WebSocket.
-    Sends emotion and speaking state updates to browser clients.
+    Sends speaking state updates to browser clients.
     """
 
     def __init__(self):
-        self.current_emotion = "neutral"
         self.is_speaking = False
         self.connections: set = set()
 
     async def handle(self, output: OutputEvent) -> None:
-        """Update avatar based on output event."""
-        # Update emotion if changed
-        if output.emotion != self.current_emotion:
-            self.current_emotion = output.emotion
-            await self.broadcast({
-                "type": "emotion",
-                "value": output.emotion,
-            })
-            logger.debug("avatar_emotion_changed", emotion=output.emotion)
+        """Handle output event (no-op since we removed emotions)."""
+        pass
 
     async def set_speaking(self, speaking: bool) -> None:
         """Update speaking state."""
@@ -74,7 +66,6 @@ class AvatarProcessor:
         """Send current state to newly connected client."""
         await websocket.send_text(json.dumps({
             "type": "init",
-            "emotion": self.current_emotion,
             "speaking": self.is_speaking,
         }))
 

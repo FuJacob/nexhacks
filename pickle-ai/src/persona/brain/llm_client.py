@@ -18,7 +18,6 @@ OLLAMA_BASE_URL = "http://localhost:11434"
 class PersonaResponse(BaseModel):
     """Structured response schema for persona output."""
     text: str = Field(description="The response text to speak")
-    emotion: str = Field(description="The emotion to express (e.g., happy, neutral, excited)")
 
 
 class LLMClient:
@@ -105,7 +104,7 @@ class LLMClient:
 
         except json.JSONDecodeError as e:
             logger.error("llm_json_parse_error", error=str(e), content=content[:100] if content else "empty")
-            return {"text": content if content else "I'm having trouble responding right now.", "emotion": "neutral"}
+            return {"text": content if content else "I'm having trouble responding right now."}
 
         except Exception as e:
             logger.error("llm_error", error=str(e))

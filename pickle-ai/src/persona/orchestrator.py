@@ -198,7 +198,6 @@ class Orchestrator:
                 logger.info(
                     "processing_output",
                     text=output.text[:50],
-                    emotion=output.emotion,
                 )
 
                 # Send to both TTS and avatar in parallel

@@ -1,21 +1,14 @@
 /**
  * Vision Server - Overshoot AI sidecar for AI Persona
  *
- * Uses Puppeteer to run the Overshoot SDK in a headless browser,
- * providing webcam access and WebRTC APIs that Node.js lacks.
+ * Provides real-time video analysis using Overshoot's WebRTC-based vision SDK.
+ * Exposes REST/WebSocket endpoints for the Python main app to consume.
  */
 
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import websocket from '@fastify/websocket';
-import puppeteer from 'puppeteer';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-import { readFileSync } from 'fs';
 import 'dotenv/config';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 const PORT = process.env.VISION_PORT || 3001;
 const HOST = process.env.VISION_HOST || '127.0.0.1';
@@ -26,12 +19,11 @@ if (!OVERSHOOT_API_KEY) {
     process.exit(1);
 }
 
-// State
+// Store latest vision result
 let latestResult = null;
 let visionActive = false;
-let browser = null;
-let page = null;
-let browserReady = false;
+let vision = null;
+let RealtimeVision = null;
 
 // WebSocket clients for real-time streaming
 const wsClients = new Set();
@@ -53,127 +45,91 @@ const fastify = Fastify({
 await fastify.register(cors, { origin: true });
 await fastify.register(websocket);
 
-// Serve the vision client HTML page
-const visionClientHtml = readFileSync(join(__dirname, 'vision-client.html'), 'utf-8');
-fastify.get('/vision-client', async (request, reply) => {
-    reply.type('text/html').send(visionClientHtml);
-});
+// Dynamically import overshoot SDK
+async function loadOvershootSDK() {
+    try {
+        const overshoot = await import('overshoot');
+        // The SDK exports RealtimeVision as default or as a named export
+        RealtimeVision = overshoot.RealtimeVision || overshoot.default;
 
-/**
- * Launch Puppeteer browser with camera permissions
- */
-async function launchBrowser() {
-    fastify.log.info('Launching headless browser...');
-    
-    browser = await puppeteer.launch({
-        headless: 'new',
-        args: [
-            '--use-fake-ui-for-media-stream',
-            // '--use-fake-device-for-media-stream', // Commented out to use REAL CAMERA
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-web-security',
-            '--disable-features=IsolateOrigins,site-per-process',
-            '--disable-site-isolation-trials',
-            '--ignore-certificate-errors',
-            '--enable-features=NetworkService',
-            '--allow-running-insecure-content',
-        ],
-        ignoreHTTPSErrors: true,
-    });
-
-    page = await browser.newPage();
-    
-    // Listen for console messages from the page
-    page.on('console', (msg) => {
-        const text = msg.text();
-        
-        if (text.startsWith('__VISION_RESULT__')) {
-            const json = text.replace('__VISION_RESULT__', '');
-            try {
-                latestResult = JSON.parse(json);
-                fastify.log.info({
-                    msg: 'vision_result',
-                    ok: latestResult.ok,
-                    latency: latestResult.latencyMs,
-                    preview: latestResult.result?.substring(0, 100),
-                });
-                
-                // Broadcast to WebSocket clients
-                for (const client of wsClients) {
-                    try {
-                        client.send(JSON.stringify(latestResult));
-                    } catch (err) {
-                        wsClients.delete(client);
-                    }
-                }
-            } catch (e) {
-                fastify.log.error({ err: e.message }, 'Failed to parse vision result');
-            }
-        } else if (text.startsWith('__VISION_ERROR__')) {
-            const json = text.replace('__VISION_ERROR__', '');
-            try {
-                latestResult = JSON.parse(json);
-                fastify.log.error({ err: latestResult.error }, 'Vision error');
-            } catch (e) {
-                fastify.log.error({ err: e.message }, 'Failed to parse vision error');
-            }
-        } else if (text === '__VISION_READY__') {
-            fastify.log.info('Browser vision client ready');
-            browserReady = true;
-        } else if (text.startsWith('__DEBUG__')) {
-            // Log debug messages at info level so they're visible
-            fastify.log.info({ browserDebug: text.replace('__DEBUG__ ', '') }, 'Browser debug');
-        } else {
-            // Log other console messages for debugging
-            fastify.log.info({ browserLog: text }, 'Browser console');
+        // Verify it's a constructor function
+        if (typeof RealtimeVision !== 'function') {
+            fastify.log.warn('RealtimeVision not found in overshoot module, vision features disabled');
+            RealtimeVision = null;
         }
-    });
-
-    // Load the vision client HTML via HTTP (not file://) for proper network access
-    await page.goto(`http://${HOST}:${PORT}/vision-client`);
-    
-    // Wait for the page to be ready
-    await new Promise((resolve) => {
-        const checkReady = setInterval(() => {
-            if (browserReady) {
-                clearInterval(checkReady);
-                resolve();
-            }
-        }, 100);
-        // Timeout after 30 seconds
-        setTimeout(() => {
-            clearInterval(checkReady);
-            resolve();
-        }, 30000);
-    });
-
-    fastify.log.info('Browser launched and ready');
-    return true;
+        return !!RealtimeVision;
+    } catch (err) {
+        fastify.log.error({ err: err.message }, 'Failed to load overshoot SDK');
+        return false;
+    }
 }
 
 /**
- * Initialize vision in the browser
+ * Initialize Overshoot RealtimeVision
  */
 async function initVision() {
-    if (!page || !browserReady) {
-        throw new Error('Browser not ready');
+    if (!RealtimeVision) {
+        throw new Error('Overshoot SDK not loaded');
     }
 
-    const result = await page.evaluate(async (config) => {
-        return await window.initVision(config);
-    }, {
+    if (vision) {
+        try {
+            await vision.stop();
+        } catch (e) {
+            // Ignore stop errors
+        }
+    }
+
+    vision = new RealtimeVision({
+        apiUrl: 'https://api.overshoot.ai',
         apiKey: OVERSHOOT_API_KEY,
-        apiUrl: 'https://cluster1.overshoot.ai/api/v0.2',
         prompt: currentPrompt,
         debug: process.env.DEBUG === 'true',
+        processing: {
+            fps: 30,
+            sampling_ratio: 0.1,
+            clip_length_seconds: 2.0,
+            delay_seconds: 3.0,
+        },
+        onResult: (result) => {
+            latestResult = {
+                id: result.id,
+                streamId: result.stream_id,
+                result: result.result,
+                ok: result.ok,
+                error: result.error,
+                latencyMs: result.total_latency_ms,
+                timestamp: new Date().toISOString(),
+                prompt: result.prompt,
+            };
+
+            fastify.log.info({
+                msg: 'vision_result',
+                ok: result.ok,
+                latency: result.total_latency_ms,
+                preview: result.result?.substring(0, 100),
+            });
+
+            // Broadcast to WebSocket clients
+            for (const client of wsClients) {
+                try {
+                    client.send(JSON.stringify(latestResult));
+                } catch (err) {
+                    wsClients.delete(client);
+                }
+            }
+        },
+        onError: (error) => {
+            fastify.log.error({ err: error.message }, 'Vision error');
+            latestResult = {
+                ok: false,
+                error: error.message,
+                timestamp: new Date().toISOString(),
+            };
+        },
     });
 
-    if (!result.ok) {
-        throw new Error(result.error);
-    }
-
-    return result;
+    return vision;
 }
 
 // ============ REST Endpoints ============
@@ -185,7 +141,7 @@ fastify.get('/health', async () => {
     return {
         status: 'ok',
         visionActive,
-        browserReady,
+        sdkLoaded: !!RealtimeVision,
         hasLatestResult: latestResult !== null,
         timestamp: new Date().toISOString(),
     };
@@ -209,10 +165,10 @@ fastify.get('/vision/latest', async () => {
  * POST /vision/start - Start vision processing
  */
 fastify.post('/vision/start', async (request, reply) => {
-    if (!browserReady) {
+    if (!RealtimeVision) {
         return reply.code(503).send({
             ok: false,
-            error: 'Browser not ready',
+            error: 'Overshoot SDK not available',
         });
     }
 
@@ -222,15 +178,7 @@ fastify.post('/vision/start', async (request, reply) => {
 
     try {
         await initVision();
-        
-        const result = await page.evaluate(async () => {
-            return await window.startVision();
-        });
-
-        if (!result.ok) {
-            throw new Error(result.error);
-        }
-
+        await vision.start();
         visionActive = true;
         fastify.log.info('Vision started');
         return { ok: true, message: 'Vision started' };
@@ -247,15 +195,12 @@ fastify.post('/vision/start', async (request, reply) => {
  * POST /vision/stop - Stop vision processing
  */
 fastify.post('/vision/stop', async () => {
-    if (!visionActive) {
+    if (!visionActive || !vision) {
         return { ok: true, message: 'Vision not active' };
     }
 
     try {
-        const result = await page.evaluate(async () => {
-            return await window.stopVision();
-        });
-
+        await vision.stop();
         visionActive = false;
         fastify.log.info('Vision stopped');
         return { ok: true, message: 'Vision stopped' };
@@ -280,11 +225,9 @@ fastify.post('/vision/prompt', async (request, reply) => {
 
     currentPrompt = prompt;
 
-    if (visionActive && page) {
+    if (vision && visionActive) {
         try {
-            await page.evaluate(async (p) => {
-                return await window.updatePrompt(p);
-            }, prompt);
+            await vision.updatePrompt(prompt);
             fastify.log.info({ promptPreview: prompt.substring(0, 50) }, 'Prompt updated');
         } catch (err) {
             fastify.log.error({ err: err.message }, 'Failed to update prompt');
@@ -304,7 +247,8 @@ fastify.post('/vision/prompt', async (request, reply) => {
 fastify.get('/vision/status', async () => {
     return {
         active: visionActive,
-        browserReady,
+        sdkLoaded: !!RealtimeVision,
+        streamId: vision?.getStreamId?.() || null,
         currentPrompt: currentPrompt.substring(0, 100) + '...',
         lastResultAt: latestResult?.timestamp || null,
     };
@@ -323,7 +267,7 @@ fastify.get('/vision/ws', { websocket: true }, (socket, req) => {
     socket.send(JSON.stringify({
         type: 'connected',
         visionActive,
-        browserReady,
+        sdkLoaded: !!RealtimeVision,
         hasLatestResult: latestResult !== null,
     }));
 
@@ -336,28 +280,30 @@ fastify.get('/vision/ws', { websocket: true }, (socket, req) => {
         try {
             const data = JSON.parse(message.toString());
 
-            if (data.command === 'start' && browserReady) {
+            if (data.command === 'start' && RealtimeVision) {
                 try {
                     await initVision();
-                    await page.evaluate(async () => window.startVision());
+                    await vision.start();
                     visionActive = true;
                     socket.send(JSON.stringify({ type: 'started' }));
                 } catch (err) {
                     socket.send(JSON.stringify({ type: 'error', error: err.message }));
                 }
             } else if (data.command === 'stop') {
-                try {
-                    await page.evaluate(async () => window.stopVision());
-                    visionActive = false;
-                    socket.send(JSON.stringify({ type: 'stopped' }));
-                } catch (err) {
-                    socket.send(JSON.stringify({ type: 'error', error: err.message }));
+                if (vision) {
+                    try {
+                        await vision.stop();
+                        visionActive = false;
+                        socket.send(JSON.stringify({ type: 'stopped' }));
+                    } catch (err) {
+                        socket.send(JSON.stringify({ type: 'error', error: err.message }));
+                    }
                 }
             } else if (data.command === 'prompt' && data.prompt) {
                 currentPrompt = data.prompt;
-                if (visionActive) {
+                if (vision && visionActive) {
                     try {
-                        await page.evaluate(async (p) => window.updatePrompt(p), data.prompt);
+                        await vision.updatePrompt(data.prompt);
                     } catch (err) {
                         // Ignore prompt update errors
                     }
@@ -386,9 +332,9 @@ fastify.get('/vision/ws', { websocket: true }, (socket, req) => {
 const shutdown = async () => {
     console.log('\nShutting down...');
 
-    if (browser) {
+    if (vision && visionActive) {
         try {
-            await browser.close();
+            await vision.stop();
         } catch (e) {
             // Ignore
         }
@@ -403,10 +349,13 @@ process.on('SIGTERM', shutdown);
 
 // Start server
 try {
-    // Start server FIRST so browser can load from http://
+    // Load SDK first
+    const sdkLoaded = await loadOvershootSDK();
+
     await fastify.listen({ port: PORT, host: HOST });
-    
+
     console.log(`\n✓ Vision server running at http://${HOST}:${PORT}`);
+    console.log(`  SDK loaded: ${sdkLoaded ? 'yes' : 'no (vision features disabled)'}`);
     console.log('\nEndpoints:');
     console.log('  GET  /health         - Health check');
     console.log('  GET  /vision/latest  - Get latest result');
@@ -415,10 +364,6 @@ try {
     console.log('  POST /vision/stop    - Stop vision');
     console.log('  POST /vision/prompt  - Update prompt');
     console.log('  WS   /vision/ws      - Real-time WebSocket\n');
-
-    // THEN launch browser (it needs to load from http://)
-    await launchBrowser();
-    console.log(`  Browser ready: ${browserReady ? 'yes' : 'no'}\n`);
 } catch (err) {
     console.error('Failed to start server:', err.message);
     process.exit(1);

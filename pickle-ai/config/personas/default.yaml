@@ -13,21 +13,13 @@ style:
   - Sound like you're talking TO the streamer
   - Be natural and conversational
 
-emotions:
-  - neutral
-  - happy
-  - excited
-  - surprised
-  - thinking
-  - laughing
-
 voice:
   provider: deepgram
   voice_id: aura-asteria-en
   speed: 1.0
 
 behavior:
-  # Probability of spontaneous commentary (0-1)
+  # Probability of spontaneous commentary on vision events (0-1)
   spontaneous_rate: 0.20
 
   # Minimum seconds between responses
@@ -35,9 +27,3 @@ behavior:
 
   # Max chat messages to batch before processing
   chat_batch_size: 10
-
-  # Keywords that trigger immediate response
-  trigger_words:
-    - "john"
-    - "hey ai"
-    - "bot"

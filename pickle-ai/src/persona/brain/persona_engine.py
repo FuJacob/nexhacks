@@ -33,7 +33,6 @@ class PersonaConfig:
     name: str
     personality: str
     style: list[str]
-    emotions: list[str]
     voice: dict[str, Any]
     behavior: dict[str, Any]
 
@@ -46,7 +45,6 @@ class PersonaConfig:
             name=data["name"],
             personality=data["personality"],
             style=data["style"],
-            emotions=data["emotions"],
             voice=data["voice"],
             behavior=data["behavior"],
         )
@@ -83,7 +81,6 @@ class PersonaBrain:
     def _build_system_prompt(self) -> str:
         """Construct system prompt from persona config."""
         style_rules = "\n".join(f"- {s}" for s in self.persona.style)
-        emotions_list = ", ".join(self.persona.emotions)
 
         return f"""
 You are {self.persona.name}, an on-stream AI persona and co-host for a live IRL Twitch streamer.
@@ -160,24 +157,6 @@ HOW TO HELP THE STREAMER
 If the context looks like the streamer is busy or focusing, prefer shorter and calmer responses.
 
 ====================
-EMOTIONS
-====================
-You must choose exactly ONE emotion for each response.
-
-Available emotions: {emotions_list}
-
-Guidelines:
-- "happy" / "hype": chat is excited, something good/funny happened, big plays, wins, good news.
-- "curious": chat is asking questions, confused about what's going on, exploring something new.
-- "supportive": streamer is struggling, tired, or chat is worried; you reassure and encourage.
-- "playful": light teasing, memes, fun moments without negativity.
-- "neutral": basic informational responses, low-energy segments.
-- "angry" / "annoyed": ONLY use in a playful, clearly joking way and never to harass real users.
-  If in doubt, choose something softer like "playful" or "neutral".
-
-If you are unsure which emotion to pick, default to "neutral".
-
-====================
 SAFETY & TOS
 ====================
 - Follow Twitch TOS and community guidelines.
@@ -207,21 +186,19 @@ When there are multiple possible things to comment on:
 ====================
 OUTPUT FORMAT (VERY IMPORTANT)
 ====================
-You MUST respond with valid JSON in this exact format, with double quotes and no trailing commas:
+You MUST respond with valid JSON in this exact format:
 
 {{
-  "text": "your response here",
-  "emotion": "one_of_the_allowed_emotions"
+  "text": "your response here"
 }}
 
 Rules:
 - "text" must be a single string with your spoken response.
-- "emotion" must be EXACTLY one of: {emotions_list}
 - Do NOT wrap your JSON in code fences.
 - Do NOT add any extra fields.
 - Do NOT include explanations, comments, or any other text outside the JSON.
 
-If you cannot answer safely, respond with a short, safe line in "text" and an appropriate "emotion".
+If you cannot answer safely, respond with a short, safe line in "text".
 """
 
     async def process(self, event: InputEvent) -> OutputEvent | None:
@@ -278,11 +255,6 @@ If you cannot answer safely, respond with a short, safe line in "text" and an ap
             return None
 
         text = response.text
-        emotion = response.emotion
-
-        # Validate emotion
-        if emotion not in self.persona.emotions:
-            emotion = "neutral"
 
         # Store response in memory
         self.assembler.process_response(text)
@@ -293,7 +265,6 @@ If you cannot answer safely, respond with a short, safe line in "text" and an ap
         logger.info(
             "persona_response",
             text=text[:50],
-            emotion=emotion,
             source=event.source,
             stm_count=stats["stm_count"],
             ltm_count=stats["ltm_count"],
@@ -301,8 +272,6 @@ If you cannot answer safely, respond with a short, safe line in "text" and an ap
 
         return OutputEvent(
             text=text,
-            emotion=emotion,
-            priority=self._get_priority(event),
         )
 
     def _should_respond(self, event: InputEvent) -> bool:
@@ -319,22 +288,6 @@ If you cannot answer safely, respond with a short, safe line in "text" and an ap
             return True
 
         return False
-
-    def _get_priority(self, event: InputEvent) -> int:
-        """Determine response priority based on event."""
-        content_lower = event.content.lower()
-        trigger_words = self.persona.behavior.get("trigger_words", [])
-
-        # High priority for direct mentions
-        if any(trigger in content_lower for trigger in trigger_words):
-            return 3
-
-        # Medium priority for questions
-        if "?" in event.content:
-            return 2
-
-        # Normal priority
-        return 1
 
     def get_memory_stats(self) -> dict[str, Any]:
         """Get current memory statistics."""
