@@ -111,6 +111,7 @@ async def main() -> None:
             client_id=settings.twitch_client_id,
             client_secret=settings.twitch_client_secret,
             bot_id=settings.twitch_bot_id,
+            refresh_token=settings.twitch_refresh_token,
             batch_interval=2.0,
             max_batch_size=persona_config.behavior.get("chat_batch_size", 10),
         )

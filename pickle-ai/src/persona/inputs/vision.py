@@ -24,7 +24,7 @@ class VisionInputProcessor(InputProcessor):
     def __init__(
         self,
         server_url: str = "http://localhost:3001",
-        poll_interval: float = 3.0,
+        poll_interval: float = 6.0,
         use_websocket: bool = True,
         auto_start_vision: bool = True,
     ):
@@ -46,6 +46,7 @@ class VisionInputProcessor(InputProcessor):
         self._session: aiohttp.ClientSession | None = None
         self._ws: aiohttp.ClientWebSocketResponse | None = None
         self._last_result_id: str | None = None
+        self._last_process_time: datetime | None = None
 
     async def _ensure_session(self) -> aiohttp.ClientSession:
         """Get or create HTTP session."""
@@ -155,6 +156,15 @@ class VisionInputProcessor(InputProcessor):
 
                                 event = self._create_input_event(data)
                                 if event:
+                                    # Throttle events to avoid overwhelming the brain (and rate limits)
+                                    now = datetime.now()
+                                    if (
+                                        self._last_process_time
+                                        and (now - self._last_process_time).total_seconds() < self.poll_interval
+                                    ):
+                                        continue
+
+                                    self._last_process_time = now
                                     await queue.put(event)
                                     logger.debug(
                                         "vision_event_queued",
