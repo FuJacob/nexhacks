@@ -1,5 +1,5 @@
 {
-  "name": "ai-persona-app",
+  "name": "pickle-ai-app",
   "private": true,
   "version": "0.1.0",
   "main": "dist-electron/main.js",
@@ -37,7 +37,7 @@
     "wait-on": "^9.0.3"
   },
   "build": {
-    "appId": "com.nexhacks.ai-persona",
+    "appId": "com.nexhacks.pickle-ai",
     "productName": "AI Persona",
     "directories": {
       "output": "release"
