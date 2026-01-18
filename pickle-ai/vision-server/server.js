@@ -8,7 +8,6 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import websocket from '@fastify/websocket';
-import { RealtimeVision } from 'overshoot';
 import 'dotenv/config';
 
 const PORT = process.env.VISION_PORT || 3001;
@@ -24,6 +23,7 @@ if (!OVERSHOOT_API_KEY) {
 let latestResult = null;
 let visionActive = false;
 let vision = null;
+let RealtimeVision = null;
 
 // WebSocket clients for real-time streaming
 const wsClients = new Set();
@@ -36,27 +36,48 @@ let currentPrompt = `You are analyzing a live IRL stream. Describe what you see 
 - Any text visible on screen
 Keep it brief (2-3 sentences max). Focus on what's happening RIGHT NOW.`;
 
-// Initialize Fastify
+// Initialize Fastify with simple logger
 const fastify = Fastify({
-    logger: {
-        level: 'info',
-        transport: {
-            target: 'pino-pretty',
-            options: { colorize: true }
-        }
-    }
+    logger: true
 });
 
 // Register plugins
 await fastify.register(cors, { origin: true });
 await fastify.register(websocket);
 
+// Dynamically import overshoot SDK
+async function loadOvershootSDK() {
+    try {
+        const overshoot = await import('overshoot');
+        // The SDK exports RealtimeVision as default or as a named export
+        RealtimeVision = overshoot.RealtimeVision || overshoot.default;
+
+        // Verify it's a constructor function
+        if (typeof RealtimeVision !== 'function') {
+            fastify.log.warn('RealtimeVision not found in overshoot module, vision features disabled');
+            RealtimeVision = null;
+        }
+        return !!RealtimeVision;
+    } catch (err) {
+        fastify.log.error({ err: err.message }, 'Failed to load overshoot SDK');
+        return false;
+    }
+}
+
 /**
  * Initialize Overshoot RealtimeVision
  */
 async function initVision() {
+    if (!RealtimeVision) {
+        throw new Error('Overshoot SDK not loaded');
+    }
+
     if (vision) {
-        await vision.stop();
+        try {
+            await vision.stop();
+        } catch (e) {
+            // Ignore stop errors
+        }
     }
 
     vision = new RealtimeVision({
@@ -66,9 +87,9 @@ async function initVision() {
         debug: process.env.DEBUG === 'true',
         processing: {
             fps: 30,
-            sampling_ratio: 0.1,        // Process 10% of frames
-            clip_length_seconds: 2.0,    // Analyze 2-second clips
-            delay_seconds: 3.0,          // New analysis every 3 seconds
+            sampling_ratio: 0.1,
+            clip_length_seconds: 2.0,
+            delay_seconds: 3.0,
         },
         onResult: (result) => {
             latestResult = {
@@ -94,13 +115,12 @@ async function initVision() {
                 try {
                     client.send(JSON.stringify(latestResult));
                 } catch (err) {
-                    fastify.log.error({ err }, 'Failed to send to WebSocket client');
                     wsClients.delete(client);
                 }
             }
         },
         onError: (error) => {
-            fastify.log.error({ err: error }, 'Vision error');
+            fastify.log.error({ err: error.message }, 'Vision error');
             latestResult = {
                 ok: false,
                 error: error.message,
@@ -121,6 +141,7 @@ fastify.get('/health', async () => {
     return {
         status: 'ok',
         visionActive,
+        sdkLoaded: !!RealtimeVision,
         hasLatestResult: latestResult !== null,
         timestamp: new Date().toISOString(),
     };
@@ -144,6 +165,13 @@ fastify.get('/vision/latest', async () => {
  * POST /vision/start - Start vision processing
  */
 fastify.post('/vision/start', async (request, reply) => {
+    if (!RealtimeVision) {
+        return reply.code(503).send({
+            ok: false,
+            error: 'Overshoot SDK not available',
+        });
+    }
+
     if (visionActive) {
         return { ok: true, message: 'Vision already active' };
     }
@@ -155,7 +183,7 @@ fastify.post('/vision/start', async (request, reply) => {
         fastify.log.info('Vision started');
         return { ok: true, message: 'Vision started' };
     } catch (err) {
-        fastify.log.error({ err }, 'Failed to start vision');
+        fastify.log.error({ err: err.message }, 'Failed to start vision');
         return reply.code(500).send({
             ok: false,
             error: err.message,
@@ -177,7 +205,7 @@ fastify.post('/vision/stop', async () => {
         fastify.log.info('Vision stopped');
         return { ok: true, message: 'Vision stopped' };
     } catch (err) {
-        fastify.log.error({ err }, 'Failed to stop vision');
+        fastify.log.error({ err: err.message }, 'Failed to stop vision');
         return { ok: false, error: err.message };
     }
 });
@@ -202,7 +230,7 @@ fastify.post('/vision/prompt', async (request, reply) => {
             await vision.updatePrompt(prompt);
             fastify.log.info({ promptPreview: prompt.substring(0, 50) }, 'Prompt updated');
         } catch (err) {
-            fastify.log.error({ err }, 'Failed to update prompt');
+            fastify.log.error({ err: err.message }, 'Failed to update prompt');
             return reply.code(500).send({
                 ok: false,
                 error: err.message,
@@ -219,7 +247,8 @@ fastify.post('/vision/prompt', async (request, reply) => {
 fastify.get('/vision/status', async () => {
     return {
         active: visionActive,
-        streamId: vision?.getStreamId() || null,
+        sdkLoaded: !!RealtimeVision,
+        streamId: vision?.getStreamId?.() || null,
         currentPrompt: currentPrompt.substring(0, 100) + '...',
         lastResultAt: latestResult?.timestamp || null,
     };
@@ -238,6 +267,7 @@ fastify.get('/vision/ws', { websocket: true }, (socket, req) => {
     socket.send(JSON.stringify({
         type: 'connected',
         visionActive,
+        sdkLoaded: !!RealtimeVision,
         hasLatestResult: latestResult !== null,
     }));
 
@@ -246,32 +276,42 @@ fastify.get('/vision/ws', { websocket: true }, (socket, req) => {
         socket.send(JSON.stringify(latestResult));
     }
 
-    socket.on('message', (message) => {
+    socket.on('message', async (message) => {
         try {
             const data = JSON.parse(message.toString());
 
-            // Handle commands via WebSocket
-            if (data.command === 'start') {
-                initVision().then(() => vision.start()).then(() => {
+            if (data.command === 'start' && RealtimeVision) {
+                try {
+                    await initVision();
+                    await vision.start();
                     visionActive = true;
                     socket.send(JSON.stringify({ type: 'started' }));
-                });
+                } catch (err) {
+                    socket.send(JSON.stringify({ type: 'error', error: err.message }));
+                }
             } else if (data.command === 'stop') {
                 if (vision) {
-                    vision.stop().then(() => {
+                    try {
+                        await vision.stop();
                         visionActive = false;
                         socket.send(JSON.stringify({ type: 'stopped' }));
-                    });
+                    } catch (err) {
+                        socket.send(JSON.stringify({ type: 'error', error: err.message }));
+                    }
                 }
             } else if (data.command === 'prompt' && data.prompt) {
                 currentPrompt = data.prompt;
                 if (vision && visionActive) {
-                    vision.updatePrompt(data.prompt);
+                    try {
+                        await vision.updatePrompt(data.prompt);
+                    } catch (err) {
+                        // Ignore prompt update errors
+                    }
                 }
                 socket.send(JSON.stringify({ type: 'prompt_updated' }));
             }
         } catch (err) {
-            fastify.log.error({ err }, 'Failed to parse WebSocket message');
+            fastify.log.error({ err: err.message }, 'Failed to parse WebSocket message');
         }
     });
 
@@ -281,7 +321,7 @@ fastify.get('/vision/ws', { websocket: true }, (socket, req) => {
     });
 
     socket.on('error', (err) => {
-        fastify.log.error({ err }, 'WebSocket error');
+        fastify.log.error({ err: err.message }, 'WebSocket error');
         wsClients.delete(socket);
     });
 });
@@ -290,10 +330,14 @@ fastify.get('/vision/ws', { websocket: true }, (socket, req) => {
 
 // Graceful shutdown
 const shutdown = async () => {
-    fastify.log.info('Shutting down...');
+    console.log('\nShutting down...');
 
     if (vision && visionActive) {
-        await vision.stop();
+        try {
+            await vision.stop();
+        } catch (e) {
+            // Ignore
+        }
     }
 
     await fastify.close();
@@ -305,17 +349,22 @@ process.on('SIGTERM', shutdown);
 
 // Start server
 try {
+    // Load SDK first
+    const sdkLoaded = await loadOvershootSDK();
+
     await fastify.listen({ port: PORT, host: HOST });
-    fastify.log.info(`Vision server running at http://${HOST}:${PORT}`);
-    fastify.log.info('Endpoints:');
-    fastify.log.info('  GET  /health         - Health check');
-    fastify.log.info('  GET  /vision/latest  - Get latest result');
-    fastify.log.info('  GET  /vision/status  - Get vision status');
-    fastify.log.info('  POST /vision/start   - Start vision');
-    fastify.log.info('  POST /vision/stop    - Stop vision');
-    fastify.log.info('  POST /vision/prompt  - Update prompt');
-    fastify.log.info('  WS   /vision/ws      - Real-time WebSocket');
+
+    console.log(`\n✓ Vision server running at http://${HOST}:${PORT}`);
+    console.log(`  SDK loaded: ${sdkLoaded ? 'yes' : 'no (vision features disabled)'}`);
+    console.log('\nEndpoints:');
+    console.log('  GET  /health         - Health check');
+    console.log('  GET  /vision/latest  - Get latest result');
+    console.log('  GET  /vision/status  - Get vision status');
+    console.log('  POST /vision/start   - Start vision');
+    console.log('  POST /vision/stop    - Stop vision');
+    console.log('  POST /vision/prompt  - Update prompt');
+    console.log('  WS   /vision/ws      - Real-time WebSocket\n');
 } catch (err) {
-    fastify.log.error(err);
+    console.error('Failed to start server:', err.message);
     process.exit(1);
 }
