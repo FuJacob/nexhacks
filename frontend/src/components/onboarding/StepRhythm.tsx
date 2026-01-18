@@ -55,21 +55,21 @@ export const StepRhythm: React.FC<StepRhythmProps> = ({
   return (
     <div className="flex flex-col w-full h-full animate-enter overflow-y-auto">
       <div className="text-center mb-8">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight bg-gradient-to-r from-white via-white to-zinc-400 bg-clip-text text-transparent">
+        <h1 className="heading-xl mb-4">
           The Rhythm
         </h1>
-        <p className="text-zinc-400 text-base md:text-lg">
+        <p className="text-zinc-400 text-base md:text-lg font-medium">
           Find the right tempo. How often do they jump in?
         </p>
       </div>
 
       <div className="space-y-10 flex-1 pb-8">
         {/* Presence Slider */}
-        <div className="space-y-6 p-6 md:p-8 rounded-3xl bg-gradient-to-b from-zinc-900/50 to-transparent border border-zinc-800/50 backdrop-blur-sm flex-shrink-0">
+        <div className="card-elevated space-y-6 p-6 md:p-8 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <svg
-                className="w-4 h-4 text-zinc-400"
+                className="w-5 h-5 text-zinc-400"
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >
@@ -79,31 +79,31 @@ export const StepRhythm: React.FC<StepRhythmProps> = ({
                   clipRule="evenodd"
                 />
               </svg>
-              <label className="text-sm font-semibold uppercase tracking-wider text-zinc-400">
+              <label className="text-sm font-bold uppercase tracking-wider text-zinc-400">
                 Presence Level
               </label>
             </div>
-            <span className="text-sm font-mono text-zinc-400 bg-zinc-900/50 px-3 py-1 rounded-lg">
+            <span className="badge badge-ghost font-mono">
               {presenceScore}%
             </span>
           </div>
 
           <div className="relative pt-6 pb-4">
-            <div className="flex justify-between text-xs text-zinc-600 mb-3">
+            <div className="flex justify-between text-xs text-zinc-500 mb-4 font-bold uppercase tracking-wide">
               <span className="flex items-center gap-1.5">
                 <svg
-                  className="w-3.5 h-3.5"
+                  className="w-4 h-4"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
                   <path d="M4.515 7.521C3.743 7.979 3 8.711 3 9.5 3 10.881 3.656 12.114 4.515 12.479M15.485 7.521C16.257 7.979 17 8.711 17 9.5c0 1.381-.656 2.614-1.515 2.979M8.5 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM14.5 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
                 </svg>
-                Quiet Observer
+                Quiet
               </span>
               <span className="flex items-center gap-1.5">
                 Main Character
                 <svg
-                  className="w-3.5 h-3.5"
+                  className="w-4 h-4"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -122,18 +122,18 @@ export const StepRhythm: React.FC<StepRhythmProps> = ({
             />
           </div>
 
-          <div className="bg-zinc-900/40 border border-zinc-800/50 rounded-2xl p-4">
-            <p className="text-center text-base md:text-lg font-medium text-white min-h-[2.5rem] flex items-center justify-center animate-fade-in">
+          <div className="card p-4">
+            <p className="text-center text-base md:text-lg font-bold text-white min-h-[2.5rem] flex items-center justify-center animate-fade-in">
               "{getPresenceText(presenceScore)}"
             </p>
           </div>
         </div>
 
         {/* Wake Words */}
-        <div className="p-6 md:p-8 rounded-3xl bg-zinc-900/30 border border-zinc-800/50 backdrop-blur-sm flex-shrink-0">
+        <div className="card-elevated p-6 md:p-8 flex-shrink-0">
           <div className="flex items-center gap-2 mb-2">
             <svg
-              className="w-4 h-4 text-zinc-400"
+              className="w-5 h-5 text-zinc-400"
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -143,21 +143,21 @@ export const StepRhythm: React.FC<StepRhythmProps> = ({
                 clipRule="evenodd"
               />
             </svg>
-            <label className="text-sm font-semibold uppercase tracking-wider text-white">
+            <label className="text-sm font-bold uppercase tracking-wider text-white">
               Wake Words
             </label>
           </div>
-          <p className="text-zinc-500 text-sm mb-5 ml-6">
+          <p className="text-zinc-500 text-sm mb-5 ml-7 font-medium">
             When should they{" "}
-            <span className="text-zinc-300 font-medium">always</span> listen?
+            <span className="text-zinc-300 font-bold">always</span> listen?
             Press Enter to add.
           </p>
 
-          <div className="flex flex-wrap gap-2.5 min-h-[50px] items-start">
+          <div className="flex flex-wrap gap-3 min-h-[50px] items-start">
             {behavior.trigger_words.map((word) => (
               <span
                 key={word}
-                className="bg-gradient-to-r from-purple-500 to-blue-500 text-white text-xs md:text-sm font-bold px-4 py-2 rounded-full flex items-center gap-2 shadow-lg shadow-purple-500/20 hover:scale-105 transition-transform flex-shrink-0"
+                className="badge badge-primary flex items-center gap-2"
               >
                 {word}
                 <button
@@ -172,7 +172,7 @@ export const StepRhythm: React.FC<StepRhythmProps> = ({
               type="text"
               placeholder="+ Add Keyword"
               onKeyDown={addTriggerWord}
-              className="bg-zinc-800/50 border border-zinc-700/50 rounded-full px-4 py-2 text-white text-sm focus:outline-none focus:border-purple-500/50 focus:bg-zinc-800 min-w-[130px] placeholder:text-zinc-600 transition-all"
+              className="input px-4 py-2 text-sm min-w-[140px] rounded-full"
             />
           </div>
         </div>

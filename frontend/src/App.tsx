@@ -188,7 +188,7 @@ function App() {
 
           <button
             onClick={loadData}
-            className="mt-4 px-8 py-3 bg-white text-black rounded-full font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-lg hover:shadow-white/20 cursor-pointer"
+            className="btn-primary mt-4"
           >
             Try Again
           </button>
@@ -224,16 +224,16 @@ function App() {
 
       {/* Progress Dots / Header */}
       <header className="fixed top-0 left-0 w-full p-6 md:p-8 flex justify-center items-center z-40">
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           {[1, 2, 3, 4].map((s) => (
             <div
               key={s}
-              className={`w-2 h-2 rounded-full transition-all duration-500 ${
+              className={`progress-dot ${
                 step === s
-                  ? "bg-white scale-125 shadow-lg shadow-white/30"
+                  ? "active"
                   : step > s
-                    ? "bg-white/60"
-                    : "bg-zinc-800"
+                    ? "completed"
+                    : "pending"
               }`}
             />
           ))}
@@ -288,11 +288,9 @@ function App() {
           {step > 1 && step < 4 && (
             <button
               onClick={handleBack}
-              className="group flex items-center gap-2 px-5 py-2.5 text-zinc-400 hover:text-white transition-all text-sm font-medium cursor-pointer rounded-full hover:bg-white/5"
+              className="btn-ghost btn-sm flex items-center gap-2"
             >
-              <span className="group-hover:-translate-x-1 transition-transform">
-                ←
-              </span>
+              <span>←</span>
               Back
             </button>
           )}
@@ -302,12 +300,10 @@ function App() {
           {step < 4 && (
             <button
               onClick={handleNext}
-              className="group bg-white text-black px-8 py-3 rounded-full font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-lg hover:shadow-white/20 cursor-pointer flex items-center gap-2 animate-glow"
+              className="btn-primary flex items-center gap-2 animate-glow"
             >
               Continue
-              <span className="group-hover:translate-x-1 transition-transform">
-                →
-              </span>
+              <span>→</span>
             </button>
           )}
         </div>

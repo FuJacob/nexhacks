@@ -60,32 +60,29 @@ export const Dashboard: React.FC<DashboardProps> = ({
           <img
             src={avatarUrl}
             alt="Pickle"
-            className="h-8 w-8 opacity-70 hover:opacity-100 transition-opacity rounded-full object-cover"
+            className="h-10 w-10 opacity-90 hover:opacity-100 transition-opacity rounded-xl object-cover border-2 border-zinc-700"
           />
           <div className="flex flex-col">
-            <h1 className="text-xl font-bold">{personaName}</h1>
-            <p className="text-xs text-zinc-500">AI Assistant</p>
+            <h1 className="text-xl font-black">{personaName}</h1>
+            <p className="text-xs text-zinc-500 font-bold uppercase tracking-wider">AI Assistant</p>
           </div>
         </div>
 
         <div className="flex items-center gap-4">
           {isLive && (
-            <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-full px-4 py-2">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-              </span>
-              <span className="text-sm font-semibold text-red-400">LIVE</span>
+            <div className="live-badge">
+              <span className="live-dot"></span>
+              <span className="text-sm font-black text-red-400">LIVE</span>
             </div>
           )}
 
           <button
             onClick={onBackToSettings}
-            className="p-2 hover:bg-white/5 rounded-lg transition-colors relative z-50"
+            className="btn-ghost p-2.5 rounded-xl relative z-50"
             title="Settings"
           >
             <svg
-              className="w-5 h-5 text-zinc-400 hover:text-white transition-colors"
+              className="w-5 h-5 text-zinc-400"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -112,11 +109,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 w-full mb-12">
           {/* Status Card */}
-          <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-2xl p-6 backdrop-blur-sm">
+          <div className="card-elevated p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-xl bg-green-500/20 border-2 border-green-500/30 flex items-center justify-center">
                 <svg
-                  className="w-5 h-5 text-green-400"
+                  className="w-6 h-6 text-green-400"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -128,23 +125,23 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </svg>
               </div>
               <div>
-                <p className="text-xs text-zinc-500 uppercase tracking-wider font-semibold">
+                <p className="text-xs text-zinc-500 uppercase tracking-wider font-bold">
                   Status
                 </p>
-                <p className="text-lg font-bold text-white">Active</p>
+                <p className="text-xl font-black text-white">Active</p>
               </div>
             </div>
-            <p className="text-sm text-zinc-400">
+            <p className="text-sm text-zinc-400 font-medium">
               AI is monitoring chat and ready to respond
             </p>
           </div>
 
           {/* Messages Card */}
-          <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-2xl p-6 backdrop-blur-sm">
+          <div className="card-elevated p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-xl bg-purple-500/20 border-2 border-purple-500/30 flex items-center justify-center">
                 <svg
-                  className="w-5 h-5 text-purple-400"
+                  className="w-6 h-6 text-purple-400"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -153,21 +150,21 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </svg>
               </div>
               <div>
-                <p className="text-xs text-zinc-500 uppercase tracking-wider font-semibold">
+                <p className="text-xs text-zinc-500 uppercase tracking-wider font-bold">
                   Messages
                 </p>
-                <p className="text-lg font-bold text-white">{messageCount}</p>
+                <p className="text-xl font-black text-white">{messageCount}</p>
               </div>
             </div>
-            <p className="text-sm text-zinc-400">Total messages processed</p>
+            <p className="text-sm text-zinc-400 font-medium">Total messages processed</p>
           </div>
 
           {/* Uptime Card */}
-          <div className="bg-zinc-900/50 border border-zinc-800/50 rounded-2xl p-6 backdrop-blur-sm">
+          <div className="card-elevated p-6">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-xl bg-blue-500/20 border-2 border-blue-500/30 flex items-center justify-center">
                 <svg
-                  className="w-5 h-5 text-blue-400"
+                  className="w-6 h-6 text-blue-400"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -179,40 +176,38 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </svg>
               </div>
               <div>
-                <p className="text-xs text-zinc-500 uppercase tracking-wider font-semibold">
+                <p className="text-xs text-zinc-500 uppercase tracking-wider font-bold">
                   Uptime
                 </p>
-                <p className="text-lg font-bold text-white font-mono">
+                <p className="text-xl font-black text-white font-mono">
                   {formatUptime(uptime)}
                 </p>
               </div>
             </div>
-            <p className="text-sm text-zinc-400">Time since activation</p>
+            <p className="text-sm text-zinc-400 font-medium">Time since activation</p>
           </div>
         </div>
 
         {/* Persona Info */}
-        <div className="w-full bg-gradient-to-b from-zinc-900/50 to-transparent border border-zinc-800/50 rounded-3xl p-8 md:p-10 backdrop-blur-sm">
+        <div className="w-full card-elevated p-8 md:p-10">
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-purple-500 via-pink-500 to-blue-500 p-[3px] shadow-xl shadow-purple-500/20">
-              <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
-                <img
-                  src={avatarUrl}
-                  className="w-full h-full object-cover opacity-80"
-                  alt="Avatar"
-                />
-              </div>
+            <div className="avatar-ring w-18 h-18">
+              <img
+                src={avatarUrl}
+                className="w-full h-full object-cover rounded-full"
+                alt="Avatar"
+              />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400">
+              <h2 className="text-2xl font-black gradient-text">
                 {personaName}
               </h2>
-              <p className="text-zinc-400">Your AI Chat Assistant</p>
+              <p className="text-zinc-400 font-medium">Your AI Chat Assistant</p>
             </div>
           </div>
 
           {persona.personality && (
-            <div className="bg-zinc-900/40 border border-zinc-800/50 rounded-2xl p-6">
+            <div className="card p-6">
               <div className="flex items-center gap-2 mb-3">
                 <svg
                   className="w-4 h-4 text-zinc-400"
@@ -221,11 +216,11 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 >
                   <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
                 </svg>
-                <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider">
+                <h3 className="text-sm font-bold text-zinc-300 uppercase tracking-wider">
                   Personality
                 </h3>
               </div>
-              <p className="text-zinc-400 leading-relaxed">
+              <p className="text-zinc-400 leading-relaxed font-medium">
                 {persona.personality}
               </p>
             </div>
@@ -245,7 +240,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     clipRule="evenodd"
                   />
                 </svg>
-                <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider">
+                <h3 className="text-sm font-bold text-zinc-300 uppercase tracking-wider">
                   Wake Words
                 </h3>
               </div>
@@ -253,7 +248,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 {persona.behavior.trigger_words.map((word) => (
                   <span
                     key={word}
-                    className="bg-gradient-to-r from-purple-500 to-blue-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg shadow-purple-500/20"
+                    className="badge badge-primary"
                   >
                     {word}
                   </span>
@@ -269,11 +264,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
         <div className="pointer-events-auto">
           <button
             onClick={() => setIsLive(!isLive)}
-            className={`px-8 py-3 rounded-full font-bold text-sm transition-all shadow-lg ${
-              isLive
-                ? "bg-red-500/10 border-2 border-red-500/30 text-red-400 hover:bg-red-500/20"
-                : "bg-green-500/10 border-2 border-green-500/30 text-green-400 hover:bg-green-500/20"
-            }`}
+            className={isLive ? "btn-danger" : "btn-success"}
           >
             {isLive ? "Stop Monitoring" : "Start Monitoring"}
           </button>
