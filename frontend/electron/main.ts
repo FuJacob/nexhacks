@@ -2,10 +2,15 @@ import { app, BrowserWindow } from "electron";
 import * as path from "path";
 
 function createWindow() {
+  const isDev = !app.isPackaged;
   const win = new BrowserWindow({
     width: 800,
     height: 600,
     title: "Pickle AI",
+    icon: path.join(
+      __dirname,
+      isDev ? "../public/logo.png" : "../dist/logo.png",
+    ),
     autoHideMenuBar: true,
     frame: false,
     titleBarStyle: "hidden",
@@ -15,8 +20,6 @@ function createWindow() {
       contextIsolation: false, // For simplicity in this basic setup; consider true + preload for security
     },
   });
-
-  const isDev = !app.isPackaged;
 
   if (isDev) {
     win.loadURL("http://localhost:5173");

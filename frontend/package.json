@@ -48,13 +48,16 @@
       "package.json"
     ],
     "mac": {
-      "target": "dmg"
+      "target": "dmg",
+      "icon": "public/logo.png"
     },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "public/logo.png"
     },
     "linux": {
-      "target": "AppImage"
+      "target": "AppImage",
+      "icon": "public/logo.png"
     }
   }
 }

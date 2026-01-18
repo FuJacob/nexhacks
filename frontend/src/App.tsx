@@ -18,7 +18,7 @@ interface PickleSettings {
   persona_name: string;
 }
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
 
 function App() {
   const [settings, setSettings] = useState<PickleSettings | null>(null);
@@ -103,76 +103,98 @@ function App() {
 
   if (loading) {
     return (
-      <div className="app-container">
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-          <p>Loading Pickle...</p>
+      <div className="max-w-[1000px] mx-auto p-8 min-h-screen flex flex-col">
+        <div className="flex-1 flex flex-col items-center justify-center gap-6 min-h-[60vh] text-zinc-400">
+          <div className="w-10 h-10 border-4 border-zinc-800 border-t-white rounded-full animate-spin"></div>
+          <p className="text-lg">Loading Pickle...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="app-container">
+    <div className="max-w-[1000px] mx-auto p-8 min-h-screen flex flex-col">
       <div className="title-bar-drag-region"></div>
-      <header className="app-header">
-        <div className="logo-section">
-          <span className="logo-icon">🥒</span>
-          <h1>Pickle</h1>
+      <header className="mb-12 pt-4 flex flex-col items-center">
+        <div className="flex items-center gap-4 mb-2">
+          <img
+            src="logo.png"
+            alt="Logo"
+            className="h-12 w-auto grayscale rounded-xl"
+          />
+          <h1 className="text-4xl font-bold tracking-tight text-white">
+            Pickle
+          </h1>
         </div>
-        <p className="tagline">AI Persona Settings</p>
+        <p className="text-zinc-400 text-base font-normal tracking-wide uppercase">
+          AI Persona Settings
+        </p>
       </header>
 
       {error && (
-        <div className="alert alert-error">
-          <span className="alert-icon">⚠️</span>
+        <div className="flex items-center gap-4 p-4 md:px-6 rounded-xl mb-8 font-medium border border-white bg-zinc-950 text-white border-l-4">
+          <span className="text-xl grayscale">⚠️</span>
           {error}
-          <button onClick={loadData} className="retry-btn">
+          <button
+            onClick={loadData}
+            className="ml-auto bg-white text-black border-none py-1.5 px-3 rounded cursor-pointer font-semibold text-sm hover:opacity-90"
+          >
             Retry
           </button>
         </div>
       )}
 
       {successMessage && (
-        <div className="alert alert-success">
-          <span className="alert-icon">✓</span>
+        <div className="flex items-center gap-4 p-4 md:px-6 rounded-xl mb-8 font-medium border border-zinc-500 bg-zinc-950 text-white border-l-4">
+          <span className="text-xl grayscale">✓</span>
           {successMessage}
         </div>
       )}
 
-      <main className="settings-container">
-        <section className="settings-section">
-          <h2>
-            <span className="section-icon">🎙️</span>
+      <main className="flex-1">
+        <section className="bg-zinc-950 rounded-xl p-10 border border-zinc-800 shadow-2xl">
+          <h2 className="flex items-center gap-3 text-xl font-semibold mb-8 text-white uppercase tracking-wider border-b border-zinc-800 pb-4">
+            <span className="text-xl grayscale">🎙️</span>
             Voice Settings
           </h2>
 
-          <div className="setting-group">
-            <label htmlFor="voice-select">Voice Model</label>
-            <p className="setting-description">
+          <div className="mb-10">
+            <label
+              className="block font-semibold mb-2 text-white"
+              htmlFor="voice-select"
+            >
+              Voice Model
+            </label>
+            <p className="text-zinc-400 text-sm mb-6">
               Choose the voice for your AI persona
             </p>
 
-            <div className="voice-grid">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">
               {voices.map((voice) => (
                 <button
                   key={voice.id}
-                  className={`voice-card ${
-                    selectedVoice === voice.id ? "selected" : ""
+                  className={`flex items-center gap-4 p-5 bg-zinc-900 border border-zinc-800 rounded-xl cursor-pointer text-zinc-400 transition-all duration-200 relative text-left hover:border-zinc-500 hover:text-white hover:bg-zinc-950 ${
+                    selectedVoice === voice.id
+                      ? "bg-black border-white text-white shadow-[0_0_0_1px_white]"
+                      : ""
                   }`}
                   onClick={() => setSelectedVoice(voice.id)}
                 >
-                  <div className="voice-avatar">
+                  <div className="text-2xl grayscale bg-zinc-950 w-10 h-10 flex items-center justify-center rounded-full border border-zinc-800">
                     {voice.gender === "female" ? "👩" : "👨"}
                   </div>
-                  <div className="voice-info">
-                    <span className="voice-name">{voice.name}</span>
-                    <span className="voice-details">
+                  <div className="flex flex-col gap-1">
+                    <span className="font-semibold text-base">
+                      {voice.name}
+                    </span>
+                    <span className="text-xs opacity-70">
                       {voice.gender} • {voice.accent}
                     </span>
                   </div>
                   {selectedVoice === voice.id && (
-                    <span className="check-mark">✓</span>
+                    <span className="absolute top-4 right-4 text-xs text-white">
+                      ✓
+                    </span>
                   )}
                 </button>
               ))}
@@ -180,33 +202,35 @@ function App() {
           </div>
 
           {settings && (
-            <div className="current-settings">
-              <h3>Current Configuration</h3>
-              <div className="config-item">
-                <span className="config-label">Active Voice:</span>
-                <span className="config-value">
+            <div className="mt-8 p-6 bg-black border border-zinc-800 rounded-xl">
+              <h3 className="text-sm uppercase tracking-wider text-zinc-500 mb-4">
+                Current Configuration
+              </h3>
+              <div className="flex justify-between mb-2 text-[0.95rem] border-b border-zinc-900 pb-2 last:border-0 last:pb-0 last:mb-0">
+                <span className="text-zinc-400">Active Voice:</span>
+                <span className="font-semibold font-mono text-white">
                   {getVoiceInfo(settings.voice.voice_model)?.name ||
                     settings.voice.voice_model}
                 </span>
               </div>
-              <div className="config-item">
-                <span className="config-label">Sample Rate:</span>
-                <span className="config-value">
+              <div className="flex justify-between mb-2 text-[0.95rem] border-b border-zinc-900 pb-2 last:border-0 last:pb-0 last:mb-0">
+                <span className="text-zinc-400">Sample Rate:</span>
+                <span className="font-semibold font-mono text-white">
                   {settings.voice.sample_rate} Hz
                 </span>
               </div>
             </div>
           )}
 
-          <div className="action-bar">
+          <div className="mt-10 flex gap-4 pt-6 border-t border-zinc-800 justify-end flex-col sm:flex-row">
             <button
-              className="btn btn-primary"
+              className="inline-flex items-center justify-center gap-2 py-3 px-6 rounded-xl font-semibold cursor-pointer transition-all duration-200 text-[0.95rem] bg-white text-black border border-white hover:opacity-90 hover:-translate-y-px disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={saveVoiceSettings}
               disabled={saving || selectedVoice === settings?.voice.voice_model}
             >
               {saving ? (
                 <>
-                  <span className="btn-spinner"></span>
+                  <span className="w-4 h-4 border-2 border-black/10 border-t-black rounded-full animate-spin mr-2"></span>
                   Saving...
                 </>
               ) : (
@@ -214,7 +238,7 @@ function App() {
               )}
             </button>
             <button
-              className="btn btn-secondary"
+              className="inline-flex items-center justify-center gap-2 py-3 px-6 rounded-xl font-semibold cursor-pointer transition-all duration-200 text-[0.95rem] bg-transparent text-white border border-zinc-800 hover:border-white hover:bg-zinc-900 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() =>
                 setSelectedVoice(settings?.voice.voice_model || "")
               }
@@ -226,7 +250,7 @@ function App() {
         </section>
       </main>
 
-      <footer className="app-footer">
+      <footer className="text-center text-zinc-600 mt-12 text-xs py-8 border-t border-zinc-900">
         <p>Pickle AI • Voice Persona System</p>
       </footer>
     </div>
