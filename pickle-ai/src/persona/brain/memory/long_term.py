@@ -161,14 +161,22 @@ class LongTermMemory:
         timestamp = datetime.now().isoformat()
         memory_id = f"{timestamp}_{hash(content) % 10000:04d}"
 
-        # Build metadata
+        # Build metadata - ensure all values are primitive types (str, int, float, bool, None)
         doc_metadata = {
             "timestamp": timestamp,
             "source": source or "unknown",
             "user": user or "",
             "role": role,
-            **(metadata or {}),
         }
+        
+        # Add additional metadata, but filter out non-primitive values
+        if metadata:
+            for key, value in metadata.items():
+                if isinstance(value, (str, int, float, bool)) or value is None:
+                    doc_metadata[key] = value
+                elif isinstance(value, list) and value:
+                    # Convert list to comma-separated string
+                    doc_metadata[key] = ", ".join(str(v) for v in value)
 
         # Generate embedding
         embedding = self._generate_embedding(content)

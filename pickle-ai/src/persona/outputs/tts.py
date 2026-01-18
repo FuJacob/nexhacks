@@ -3,6 +3,7 @@
 import asyncio
 import io
 import os
+import struct
 import subprocess
 import tempfile
 import wave
@@ -21,7 +22,7 @@ logger = get_logger(__name__)
 class TTSProcessor:
     """
     Text-to-speech processor using Deepgram.
-    Outputs audio to virtual audio cable for OBS capture.
+    Streams audio to avatar overlay via WebSocket for lip-sync.
     """
 
     def __init__(
@@ -31,12 +32,14 @@ class TTSProcessor:
         lang: str = "en",
         sample_rate: int = 24000,
         voice_model: str = "aura-asteria-en",
+        avatar_processor = None,
     ):
         self.api_key = api_key
         self.output_device = output_device
         self.lang = lang
         self.sample_rate = sample_rate
         self.voice_model = voice_model
+        self.avatar_processor = avatar_processor
         
         # Initialize Deepgram client
         self.client = DeepgramClient(api_key)
@@ -53,12 +56,10 @@ class TTSProcessor:
         """Set callback for speaking state changes."""
         self._on_speaking_change = callback
 
-    def update_voice(self, voice_model: str, sample_rate: int | None = None) -> None:
+    def update_voice(self, voice_model: str) -> None:
         """Update voice settings on the fly."""
         self.voice_model = voice_model
-        if sample_rate is not None:
-            self.sample_rate = sample_rate
-        logger.info("tts_voice_updated", voice=voice_model, sample_rate=self.sample_rate)
+        logger.info("tts_voice_updated", voice=voice_model)
 
     async def start(self) -> None:
         """Start the TTS processor."""
@@ -114,7 +115,7 @@ class TTSProcessor:
                 self.speaking = False
 
     async def _speak(self, text: str) -> None:
-        """Generate and play speech for text."""
+        """Generate and stream speech for text."""
         try:
             # Generate audio using Deepgram in a thread pool (requests can be blocking)
             loop = asyncio.get_event_loop()
@@ -125,18 +126,55 @@ class TTSProcessor:
             if audio_data is None:
                 return
 
-            # Find output device
-            device_id = self._find_device()
-
-            # Play audio
-            logger.debug("tts_playing", duration_sec=len(audio_data) / self.sample_rate)
-            sd.play(audio_data, samplerate=self.sample_rate, device=device_id)
-            sd.wait()
+            # If avatar processor is available, stream to overlay
+            if self.avatar_processor:
+                await self._stream_to_avatar(audio_data, text)
+            else:
+                # Fallback: play locally
+                await self._play_local(audio_data)
 
         except Exception as e:
             logger.error("tts_speak_error", error=str(e))
-            # Don't raise here to keep loop running
-            pass
+
+    async def _stream_to_avatar(self, audio_data: np.ndarray, text: str) -> None:
+        """Stream audio to avatar overlay for lip-sync."""
+        try:
+            # Convert float32 audio to int16 PCM
+            audio_int16 = (audio_data * 32767).astype(np.int16)
+            audio_bytes = audio_int16.tobytes()
+            
+            # Start stream
+            await self.avatar_processor.stream_audio_start(self.sample_rate)
+            
+            # Send audio in chunks (simulate streaming)
+            chunk_size = self.sample_rate * 2  # 2 seconds worth of samples
+            for i in range(0, len(audio_bytes), chunk_size * 2):  # *2 for int16 bytes
+                chunk = audio_bytes[i:i + chunk_size * 2]
+                await self.avatar_processor.stream_audio_chunk(chunk, text if i == 0 else "")
+                # Small delay to simulate real streaming
+                await asyncio.sleep(0.1)
+            
+            # End stream
+            await self.avatar_processor.stream_audio_end()
+            
+            # Wait for audio duration
+            duration = len(audio_data) / self.sample_rate
+            await asyncio.sleep(duration)
+            
+            logger.debug("tts_streamed_to_avatar", duration_sec=duration)
+            
+        except Exception as e:
+            logger.error("tts_stream_error", error=str(e))
+
+    async def _play_local(self, audio_data: np.ndarray) -> None:
+        """Play audio locally (fallback when no avatar)."""
+        try:
+            device_id = self._find_device()
+            logger.debug("tts_playing", duration_sec=len(audio_data) / self.sample_rate)
+            sd.play(audio_data, samplerate=self.sample_rate, device=device_id)
+            sd.wait()
+        except Exception as e:
+            logger.error("tts_play_error", error=str(e))
 
     def _generate_audio(self, text: str) -> np.ndarray | None:
         """Generate audio from text using Deepgram (sync, runs in thread pool)."""
