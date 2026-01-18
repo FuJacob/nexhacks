@@ -40,7 +40,8 @@ class BehaviorSettings(BaseModel):
 class PersonaSettings(BaseModel):
     """Persona configuration settings."""
     
-    name: str = Field(default="Pixel", description="Name of the AI persona")
+    name: str = Field(default="Pickle", description="Name of the AI persona")
+    streamer_name: str = Field(default="Streamer", description="Name of the streamer this AI supports")
     personality: str = Field(
         default="Pixel is an enthusiastic and supportive AI companion.\nThey love making witty observations and engaging with chat.\nThey're knowledgeable but never condescending.\nThey have a playful sense of humor and genuine curiosity about the world.",
         description="Personality description for the AI"
@@ -104,6 +105,7 @@ class SettingsManager:
                     behavior_data = yaml_data.get("behavior", {})
                     persona_data = {
                         "name": yaml_data.get("name", settings.persona.name),
+                        "streamer_name": yaml_data.get("streamer_name", settings.persona.streamer_name),
                         "personality": yaml_data.get("personality", settings.persona.personality),
                         "style": yaml_data.get("style", settings.persona.style),
                         "emotions": yaml_data.get("emotions", settings.persona.emotions),
@@ -192,6 +194,7 @@ class SettingsManager:
             persona = self.settings.persona
             yaml_data = {
                 "name": persona.name,
+                "streamer_name": persona.streamer_name,
                 "personality": persona.personality,
                 "style": persona.style,
                 "emotions": persona.emotions,

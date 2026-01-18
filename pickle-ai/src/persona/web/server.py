@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from ..outputs.avatar import AvatarProcessor
 from ..outputs.tts import TTSProcessor
+from ..brain.persona_engine import PersonaBrain
 from ..utils.logging import get_logger
 from .settings_manager import (
     SettingsManager,
@@ -41,6 +42,7 @@ class BehaviorUpdateRequest(BaseModel):
 class PersonaUpdateRequest(BaseModel):
     """Request model for updating persona settings."""
     name: str
+    streamer_name: str = ""
     personality: str
     style: list[str]
     emotions: list[str]
@@ -50,6 +52,7 @@ class PersonaUpdateRequest(BaseModel):
 def create_app(
     avatar_processor: AvatarProcessor,
     tts_processor: TTSProcessor | None = None,
+    brain: PersonaBrain | None = None,
     settings_manager: SettingsManager | None = None,
 ) -> FastAPI:
     """Create FastAPI application with avatar WebSocket."""
@@ -57,6 +60,17 @@ def create_app(
     
     # Use provided settings manager or get global instance
     sm = settings_manager or get_settings_manager()
+    
+    # Set up callbacks for live updates
+    if tts_processor:
+        async def on_voice_change(voice_settings: VoiceSettings) -> None:
+            tts_processor.update_voice(voice_settings.voice_model)
+        sm.set_voice_change_callback(on_voice_change)
+    
+    if brain:
+        async def on_persona_change(persona_settings: PersonaSettings) -> None:
+            brain.update_persona(persona_settings)
+        sm.set_persona_change_callback(on_persona_change)
     
     # Add CORS middleware for frontend
     app.add_middleware(
@@ -119,6 +133,7 @@ def create_app(
         """Update persona settings."""
         new_settings = PersonaSettings(
             name=request.name,
+            streamer_name=request.streamer_name,
             personality=request.personality,
             style=request.style,
             emotions=request.emotions,

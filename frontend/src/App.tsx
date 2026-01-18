@@ -11,8 +11,9 @@ const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
 
 // Default persona state - used before backend loads or if user skips onboarding
 const DEFAULT_PERSONA: PersonaSettings = {
-  name: "John",
-  personality: "John is an enthusiastic and supportive AI companion. He loves making witty observations and engaging with chat. He's knowledgeable but never condescending. He has a playful sense of humor and genuine curiosity about the world.",
+  name: "Pickle",
+  streamer_name: "",
+  personality: "Pickle is an enthusiastic and supportive AI companion. They love making witty observations and engaging with chat. They're knowledgeable but never condescending. They have a playful sense of humor and genuine curiosity about the world.",
   style: [
     "Keep responses under 2 sentences",
     "Use casual, conversational language",
@@ -265,6 +266,8 @@ function App() {
           <StepIdentity
             name={persona.name}
             setName={(n) => setPersona({ ...persona, name: n })}
+            streamerName={persona.streamer_name}
+            setStreamerName={(n) => setPersona({ ...persona, streamer_name: n })}
             selectedVoice={selectedVoice}
             setSelectedVoice={setSelectedVoice}
             voices={voices}

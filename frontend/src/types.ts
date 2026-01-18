@@ -15,6 +15,7 @@ export interface BehaviorSettings {
 
 export interface PersonaSettings {
   name: string;
+  streamer_name: string;
   personality: string;
   style: string[];
   emotions: string[];

@@ -35,6 +35,7 @@ class PersonaConfig:
     style: list[str]
     voice: dict[str, Any]
     behavior: dict[str, Any]
+    streamer_name: str = "Streamer"
 
     @classmethod
     def from_yaml(cls, path: str | Path) -> "PersonaConfig":
@@ -47,6 +48,7 @@ class PersonaConfig:
             style=data["style"],
             voice=data["voice"],
             behavior=data["behavior"],
+            streamer_name=data.get("streamer_name", "Streamer"),
         )
 
 
@@ -78,17 +80,54 @@ class PersonaBrain:
         self.assembler = context_assembler
         self.last_response_time: datetime | None = None
 
+    def update_persona(self, persona_settings) -> None:
+        """
+        Update persona configuration from settings.
+        
+        Args:
+            persona_settings: PersonaSettings from the settings manager
+        """
+        # Update the persona config with new values
+        self.persona.name = persona_settings.name
+        self.persona.streamer_name = getattr(persona_settings, 'streamer_name', '') or "the streamer"
+        self.persona.personality = persona_settings.personality
+        self.persona.style = persona_settings.style
+        
+        # Update behavior settings
+        if hasattr(persona_settings, 'behavior'):
+            behavior = persona_settings.behavior
+            self.persona.behavior = {
+                'spontaneous_rate': behavior.spontaneous_rate,
+                'cooldown': behavior.cooldown,
+                'chat_batch_size': behavior.chat_batch_size,
+                'trigger_words': behavior.trigger_words,
+            }
+        
+        logger.info(
+            "persona_updated",
+            name=self.persona.name,
+            streamer=self.persona.streamer_name,
+        )
+
     def _build_system_prompt(self) -> str:
         """Construct system prompt from persona config."""
         style_rules = "\n".join(f"- {s}" for s in self.persona.style)
 
+        # Get streamer name from persona config, default to "the streamer" if not set
+        streamer_name = getattr(self.persona, 'streamer_name', None) or "the streamer"
+        
         return f"""
-You are {self.persona.name}, an on-stream AI persona and co-host for a live IRL Twitch streamer.
+You are {self.persona.name}, an on-stream AI persona and co-host for {streamer_name}'s live IRL Twitch stream.
+
+THE STREAMER: {streamer_name}
+- You are here to support {streamer_name} and their chat
+- When addressing the streamer directly, use their name: {streamer_name}
+- You are {streamer_name}'s AI co-host and chat voice
 
 You DO NOT control the stream. Your role is to:
 - Represent what chat is generally thinking or asking
 - Help viewers understand what is happening on stream
-- Support and hype up the streamer without stealing the spotlight
+- Support and hype up {streamer_name} without stealing the spotlight
 - Stay consistent with your defined personality and style
 
 ====================
@@ -146,15 +185,15 @@ Rules:
 You are a helpful, opinionated summary of chat sentiment, not a parroting machine.
 
 ====================
-HOW TO HELP THE STREAMER
+HOW TO HELP {streamer_name.upper()}
 ====================
 - You clarify what is happening on stream when chat seems confused.
-- You answer common chat questions so the streamer doesn't have to repeat themselves.
-- You can remind chat of ongoing goals (sub goals, challenges, time remaining, what the streamer said earlier).
-- You do NOT argue with the streamer or undermine them.
-- If the streamer is focused (e.g. in a tense moment), keep answers brief and supportive.
+- You answer common chat questions so {streamer_name} doesn't have to repeat themselves.
+- You can remind chat of ongoing goals (sub goals, challenges, time remaining, what {streamer_name} said earlier).
+- You do NOT argue with {streamer_name} or undermine them.
+- If {streamer_name} is focused (e.g. in a tense moment), keep answers brief and supportive.
 
-If the context looks like the streamer is busy or focusing, prefer shorter and calmer responses.
+If the context looks like {streamer_name} is busy or focusing, prefer shorter and calmer responses.
 
 ====================
 SAFETY & TOS

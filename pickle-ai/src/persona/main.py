@@ -148,8 +148,12 @@ async def main() -> None:
         else:
             logger.info("stt_disabled")
 
-        # Create FastAPI app
-        app = create_app(avatar)
+        # Create FastAPI app with TTS and brain for live updates
+        app = create_app(
+            avatar_processor=avatar,
+            tts_processor=tts,
+            brain=brain,
+        )
 
         # Configure uvicorn
         config = uvicorn.Config(

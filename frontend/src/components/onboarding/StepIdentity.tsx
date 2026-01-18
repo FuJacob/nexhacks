@@ -4,6 +4,8 @@ import type { Voice } from "../../types";
 interface StepIdentityProps {
   name: string;
   setName: (name: string) => void;
+  streamerName: string;
+  setStreamerName: (name: string) => void;
   selectedVoice: string;
   setSelectedVoice: (id: string) => void;
   voices: Voice[];
@@ -32,6 +34,8 @@ const DISPLAY_VOICES = [
 export const StepIdentity: React.FC<StepIdentityProps> = ({
   name,
   setName,
+  streamerName,
+  setStreamerName,
   selectedVoice,
   setSelectedVoice,
   voices,
@@ -106,12 +110,27 @@ export const StepIdentity: React.FC<StepIdentityProps> = ({
       <div className="text-center mb-8">
         <h1 className="heading-xl mb-4">The Identity</h1>
         <p className="text-zinc-400 text-base md:text-lg font-medium">
-          Give your chat a face and a voice.
+          Tell us about you and your AI co-host.
         </p>
       </div>
 
       <div className="flex flex-col items-center justify-start gap-8 flex-1 pb-8">
-        {/* Avatar Ring */}
+        {/* Streamer Name Input */}
+        <div className="w-full max-w-sm px-4 flex-shrink-0">
+          <label className="text-sm text-zinc-500 text-center mb-2 font-bold uppercase tracking-wider block">
+            Your Name (The Streamer)
+          </label>
+          <input
+            type="text"
+            value={streamerName}
+            onChange={(e) => setStreamerName(e.target.value)}
+            placeholder="What should the AI call you?"
+            className="input-underline"
+            autoFocus
+          />
+        </div>
+
+        {/* Avatar Ring */}}
         <div
           className="relative group cursor-pointer flex-shrink-0"
           onClick={() => setShowAvatarPicker(true)}
@@ -132,15 +151,17 @@ export const StepIdentity: React.FC<StepIdentityProps> = ({
           </div>
         </div>
 
-        {/* Name Input */}
+        {/* AI Name Input */}
         <div className="w-full max-w-sm px-4 flex-shrink-0">
+          <label className="text-sm text-zinc-500 text-center mb-2 font-bold uppercase tracking-wider block">
+            AI Co-Host Name
+          </label>
           <input
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Name your AI (e.g. Chat, Glitch)"
+            placeholder="Name your AI (e.g. Pickle, Glitch)"
             className="input-underline"
-            autoFocus
           />
         </div>
 
