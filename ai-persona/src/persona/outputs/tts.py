@@ -10,7 +10,7 @@ from typing import Callable, Awaitable
 
 import numpy as np
 import sounddevice as sd
-from deepgram import DeepgramClient, SpeakOptions
+from deepgram import DeepgramClient
 
 from ..brain.persona_engine import OutputEvent
 from ..utils.logging import get_logger
@@ -134,27 +134,26 @@ class TTSProcessor:
     def _generate_audio(self, text: str) -> np.ndarray | None:
         """Generate audio from text using Deepgram (sync, runs in thread pool)."""
         try:
-            # Configure options
-            options = SpeakOptions(
-                model=self.voice_model,
+            # Configure options - use dict for SDK 3.x
+            options = {
+                "model": self.voice_model,
+            }
+
+            # Generate speech using speak.rest.v() per SDK 3.x API
+            response = self.client.speak.rest.v("1").save(
+                filename="temp_audio.mp3",
+                source={"text": text},
+                options=options,
             )
 
-            # Generate speech
-            response = self.client.speak.v1.audio.generate(
-                text=text,
-                options=options
-            )
+            # Read the saved MP3 file
+            mp3_path = "temp_audio.mp3"
+            if not os.path.exists(mp3_path):
+                logger.error("tts_file_not_created")
+                return None
 
-            # Read the full stream
-            audio_bytes = response.stream.getvalue()
-
-            # Write MP3 to temp file
-            with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as mp3_file:
-                mp3_file.write(audio_bytes)
-                mp3_path = mp3_file.name
-
-            # Convert to WAV using ffmpeg (if available)
-            wav_path = mp3_path.replace(".mp3", ".wav")
+            # Convert to WAV using ffmpeg
+            wav_path = "temp_audio.wav"
 
             try:
                 # Try ffmpeg first (faster)
