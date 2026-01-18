@@ -147,7 +147,9 @@ class TTSProcessor:
                 
                 logger.debug("tts_streamed_to_overlay", duration_sec=duration)
             else:
-                logger.warning("tts_no_avatar_processor", text=text[:30])
+                # Fallback: play audio locally when no avatar connection
+                logger.info("tts_playing_local", reason="no_avatar_processor")
+                await self._play_local(audio_data)
 
         except Exception as e:
             logger.error("tts_speak_error", error=str(e))
@@ -164,7 +166,22 @@ class TTSProcessor:
 
     def _generate_audio(self, text: str) -> np.ndarray | None:
         """Generate audio from text using Deepgram (sync, runs in thread pool)."""
+        mp3_fd = None
+        wav_fd = None
+        mp3_path = None
+        wav_path = None
+        
         try:
+            # Create unique temp files
+            mp3_fd, mp3_path = tempfile.mkstemp(suffix=".mp3", prefix="tts_")
+            wav_fd, wav_path = tempfile.mkstemp(suffix=".wav", prefix="tts_")
+            
+            # Close file descriptors (we only need the paths)
+            os.close(mp3_fd)
+            os.close(wav_fd)
+            mp3_fd = None
+            wav_fd = None
+            
             # Configure options - use dict for SDK 3.x
             options = {
                 "model": self.voice_model,
@@ -172,22 +189,17 @@ class TTSProcessor:
 
             # Generate speech using speak.rest.v() per SDK 3.x API
             response = self.client.speak.rest.v("1").save(
-                filename="temp_audio.mp3",
+                filename=mp3_path,
                 source={"text": text},
                 options=options,
             )
 
-            # Read the saved MP3 file
-            mp3_path = "temp_audio.mp3"
             if not os.path.exists(mp3_path):
                 logger.error("tts_file_not_created")
                 return None
 
             # Convert to WAV using ffmpeg
-            wav_path = "temp_audio.wav"
-
             try:
-                # Try ffmpeg first (faster)
                 # Ensure we resample to self.sample_rate
                 subprocess.run(
                     ["ffmpeg", "-i", mp3_path, "-ar", str(self.sample_rate), "-ac", "1", "-y", wav_path],
@@ -196,7 +208,6 @@ class TTSProcessor:
                 )
             except (subprocess.CalledProcessError, FileNotFoundError):
                 logger.error("ffmpeg_not_found", msg="ffmpeg required for audio conversion")
-                os.unlink(mp3_path)
                 return None
 
             # Read WAV file
@@ -205,15 +216,19 @@ class TTSProcessor:
                 audio = np.frombuffer(frames, dtype=np.int16)
                 audio = audio.astype(np.float32) / 32768.0
 
-            # Clean up temp files
-            os.unlink(mp3_path)
-            os.unlink(wav_path)
-
             return audio
 
         except Exception as e:
             logger.error("tts_generate_error", error=str(e))
             return None
+        finally:
+            # Clean up temp files
+            for path in [mp3_path, wav_path]:
+                if path and os.path.exists(path):
+                    try:
+                        os.unlink(path)
+                    except Exception:
+                        pass
 
     def _find_device(self) -> int | None:
         """Find the output device by name."""

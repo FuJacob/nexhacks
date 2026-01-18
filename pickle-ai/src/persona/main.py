@@ -30,7 +30,7 @@ async def main() -> None:
     load_dotenv()
 
     # Setup logging
-    setup_logging(debug=True)
+    setup_logging(debug=False)  # Changed from True to reduce log noise
     logger = get_logger(__name__)
 
     logger.info("starting_ai_persona")
