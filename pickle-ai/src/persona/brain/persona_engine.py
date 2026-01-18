@@ -307,20 +307,12 @@ If you cannot answer safely, respond with a short, safe line in "text" and an ap
 
     def _should_respond(self, event: InputEvent) -> bool:
         """Decide if persona should respond to this event."""
-        content_lower = event.content.lower()
-        trigger_words = self.persona.behavior.get("trigger_words", [])
-
-        # Always respond to trigger words (name mentions)
-        if any(trigger in content_lower for trigger in trigger_words):
-            logger.debug("responding", reason="trigger_word")
+        # Always respond to chat messages
+        if event.source == "chat":
+            logger.debug("responding", reason="chat_message")
             return True
-
-        # Respond to direct questions
-        if "?" in event.content:
-            logger.debug("responding", reason="question")
-            return True
-
-        # Random spontaneous response
+        
+        # For vision, use spontaneous rate
         spontaneous_rate = self.persona.behavior.get("spontaneous_rate", 0.15)
         if random.random() < spontaneous_rate:
             logger.debug("responding", reason="spontaneous")

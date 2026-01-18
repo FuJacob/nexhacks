@@ -8,8 +8,8 @@ from pydantic import Field
 class Settings(BaseSettings):
     """Application settings loaded from environment."""
 
-    # Gemini API
-    gemini_api_key: str = Field(..., alias="GEMINI_API_KEY")
+    # Ollama (local LLM)
+    ollama_model: str = Field("phi3.5:latest", alias="OLLAMA_MODEL")
 
     # Deepgram API
     deepgram_api_key: str = Field(..., alias="DEEPGRAM_API_KEY")

@@ -201,12 +201,33 @@ class ContextAssembler:
                     ratio=f"{result.compression_ratio:.2f}x",
                 )
 
+        # Build context as a single message instead of role-based conversation
+        # This prevents the LLM from thinking it should role-play as the user
+        context_parts = []
+        
+        # Add recent context (formatted as observations, not as user messages)
+        recent = self.stm.get_recent(self.stm_message_count)
+        for entry in recent:
+            if entry.role == "assistant":
+                context_parts.append(f"[You previously said]: {entry.content}")
+            elif entry.source == "vision":
+                context_parts.append(f"[What you see on stream]: {entry.content}")
+            elif entry.source == "chat":
+                # Format chat message clearly - this is what needs to be rephrased
+                context_parts.append(f"[Chat from {entry.user or 'viewer'}]: {entry.content}")
+            else:
+                context_parts.append(f"[Input]: {entry.content}")
+        
+        # Add the current input clearly marked
+        context_parts.append(f"\n[CURRENT CHAT MESSAGE TO VOICE]: {current_input}")
+        context_parts.append("Now rephrase this chat message as speech directed at the streamer (convert he/she to you):")
+        
+        user_context = "\n".join(context_parts)
+
         messages = [
             {"role": "system", "content": full_system_prompt},
+            {"role": "user", "content": user_context},
         ]
-
-        # Add STM conversation history
-        messages.extend(context.messages)
 
         return messages
 

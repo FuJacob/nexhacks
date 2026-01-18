@@ -1,9 +1,8 @@
-"""Async Gemini client wrapper."""
+"""Async Ollama client wrapper."""
 
 import json
 from typing import Type, TypeVar
-from google import genai
-from google.genai import types
+import aiohttp
 from pydantic import BaseModel, Field
 
 from ..utils.logging import get_logger
@@ -11,6 +10,9 @@ from ..utils.logging import get_logger
 logger = get_logger(__name__)
 
 T = TypeVar("T", bound=BaseModel)
+
+# Ollama API endpoint
+OLLAMA_BASE_URL = "http://localhost:11434"
 
 
 class PersonaResponse(BaseModel):
@@ -20,11 +22,18 @@ class PersonaResponse(BaseModel):
 
 
 class LLMClient:
-    """Async Gemini client wrapper with structured outputs."""
+    """Async Ollama client wrapper with structured outputs."""
 
-    def __init__(self, api_key: str, model: str = "gemini-2.5-flash-lite"):
-        self.client = genai.Client(api_key=api_key)
+    def __init__(self, api_key: str = "", model: str = "phi3.5:latest"):
+        """
+        Initialize Ollama client.
+        
+        Args:
+            api_key: Not used for Ollama (local), kept for interface compatibility
+            model: Ollama model name (default: phi3.5:latest)
+        """
         self.model = model
+        self.base_url = OLLAMA_BASE_URL
 
     async def chat_completion(
         self,
@@ -47,50 +56,46 @@ class LLMClient:
         """
         content = ""
         try:
-            # Convert messages to Gemini format
-            # Extract system instruction from messages
-            system_instruction = None
-            contents = []
-
+            # Build Ollama request
+            # Convert system message to Ollama format
+            ollama_messages = []
             for msg in messages:
-                if msg["role"] == "system":
-                    system_instruction = msg["content"]
-                elif msg["role"] == "user":
-                    contents.append(
-                        types.Content(
-                            role="user",
-                            parts=[types.Part.from_text(text=msg["content"])],
-                        )
-                    )
-                elif msg["role"] == "assistant":
-                    contents.append(
-                        types.Content(
-                            role="model",
-                            parts=[types.Part.from_text(text=msg["content"])],
-                        )
-                    )
+                ollama_messages.append({
+                    "role": msg["role"],
+                    "content": msg["content"]
+                })
 
-            # Build config with optional schema
-            config_kwargs = {
-                "system_instruction": system_instruction,
-                "max_output_tokens": max_tokens,
-                "temperature": temperature,
-                "response_mime_type": "application/json",
+            # Build request payload
+            payload = {
+                "model": self.model,
+                "messages": ollama_messages,
+                "stream": False,
+                "options": {
+                    "temperature": temperature,
+                    "num_predict": max_tokens,
+                }
             }
-            
-            # Add JSON schema if provided (Gemini structured outputs)
+
+            # Add JSON schema if provided (Ollama structured outputs)
             if response_schema:
-                config_kwargs["response_schema"] = response_schema
+                payload["format"] = response_schema.model_json_schema()
+            else:
+                payload["format"] = "json"
 
-            # Use async client
-            response = await self.client.aio.models.generate_content(
-                model=self.model,
-                contents=contents,
-                config=types.GenerateContentConfig(**config_kwargs),
-            )
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{self.base_url}/api/chat",
+                    json=payload,
+                    timeout=aiohttp.ClientTimeout(total=30)
+                ) as response:
+                    if response.status != 200:
+                        error_text = await response.text()
+                        logger.error("ollama_api_error", status=response.status, error=error_text)
+                        raise Exception(f"Ollama API error: {response.status}")
+                    
+                    data = await response.json()
+                    content = data.get("message", {}).get("content", "")
 
-            content = response.text
-            
             # Parse and validate with Pydantic if schema provided
             if response_schema:
                 result = response_schema.model_validate_json(content)
@@ -114,7 +119,7 @@ class LLMClient:
     ) -> PersonaResponse:
         """
         Get a structured persona response.
-        Uses Gemini's structured output to guarantee valid JSON.
+        Uses Ollama's structured output to guarantee valid JSON.
         """
         result = await self.chat_completion(
             messages=messages,

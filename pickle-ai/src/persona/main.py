@@ -30,7 +30,7 @@ async def main() -> None:
     load_dotenv()
 
     # Setup logging
-    setup_logging(debug=True)
+    setup_logging(debug=False)  # Changed from True to reduce log noise
     logger = get_logger(__name__)
 
     logger.info("starting_ai_persona")
@@ -44,8 +44,8 @@ async def main() -> None:
         persona_config = PersonaConfig.from_yaml(settings.persona_config)
         logger.info("persona_loaded", name=persona_config.name)
 
-        # Initialize components
-        llm_client = LLMClient(api_key=settings.gemini_api_key)
+        # Initialize components - using Ollama (local LLM)
+        llm_client = LLMClient(model=settings.ollama_model)
 
         # Initialize token compressor
         compressor = None

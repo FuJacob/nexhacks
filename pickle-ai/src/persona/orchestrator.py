@@ -104,8 +104,14 @@ class Orchestrator:
             await self.stop()
 
     async def _main_loop(self) -> None:
-        """Process input events through the brain."""
+        """Process input events through the brain with vision batching."""
         logger.info("main_loop_started")
+        
+        # Vision batching state
+        vision_buffer: list[str] = []
+        vision_batch_size = 5  # Collect this many vision events before processing
+        vision_batch_timeout = 15.0  # Or process after this many seconds
+        last_vision_process = asyncio.get_event_loop().time()
 
         while self._running:
             try:
@@ -116,19 +122,29 @@ class Orchestrator:
                         timeout=1.0,
                     )
                 except asyncio.TimeoutError:
+                    # Check if we should flush vision buffer due to timeout
+                    now = asyncio.get_event_loop().time()
+                    if vision_buffer and (now - last_vision_process) >= vision_batch_timeout:
+                        await self._process_vision_batch(vision_buffer)
+                        vision_buffer.clear()
+                        last_vision_process = now
                     continue
 
-                logger.debug(
-                    "processing_input",
-                    source=event.source,
-                    content_len=len(event.content),
-                )
-
-                # Process through brain
-                response = await self.brain.process(event)
-
-                if response:
-                    await self.output_queue.put(response)
+                # Handle vision events: batch them
+                if event.source == "vision":
+                    vision_buffer.append(event.content)
+                    
+                    # Process if buffer is full
+                    if len(vision_buffer) >= vision_batch_size:
+                        await self._process_vision_batch(vision_buffer)
+                        vision_buffer.clear()
+                        last_vision_process = asyncio.get_event_loop().time()
+                else:
+                    # Chat and other events: process immediately
+                    logger.info("processing_chat", content_preview=event.content[:50])
+                    response = await self.brain.process(event)
+                    if response:
+                        await self.output_queue.put(response)
 
             except asyncio.CancelledError:
                 break
@@ -136,6 +152,33 @@ class Orchestrator:
                 logger.error("main_loop_error", error=str(e))
 
         logger.info("main_loop_stopped")
+    
+    async def _process_vision_batch(self, vision_events: list[str]) -> None:
+        """Process a batch of vision events as a single context."""
+        if not vision_events:
+            return
+        
+        # Summarize the scene from multiple observations
+        # Take the most recent description and note any changes
+        scene_summary = vision_events[-1]  # Use latest as primary
+        
+        logger.info("processing_vision_batch", count=len(vision_events))
+        
+        # Create a synthetic event with the summary
+        from .inputs.base import InputEvent
+        from datetime import datetime
+        
+        batch_event = InputEvent(
+            source="vision",
+            content=f"[Scene observation] {scene_summary}",
+            timestamp=datetime.now(),
+            metadata={"batch_size": len(vision_events)}
+        )
+        
+        response = await self.brain.process(batch_event)
+        if response:
+            logger.info("vision_response_queued", text=response.text[:50])
+            await self.output_queue.put(response)
 
     async def _output_loop(self) -> None:
         """Route output events to handlers."""
@@ -152,9 +195,9 @@ class Orchestrator:
                 except asyncio.TimeoutError:
                     continue
 
-                logger.debug(
+                logger.info(
                     "processing_output",
-                    text_len=len(output.text),
+                    text=output.text[:50],
                     emotion=output.emotion,
                 )
 

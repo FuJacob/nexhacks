@@ -9,19 +9,29 @@ import { Dashboard } from "./components/Dashboard";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
 
-// Default empty state to prevent null crashes before load
+// Default persona state - used before backend loads or if user skips onboarding
 const DEFAULT_PERSONA: PersonaSettings = {
-  name: "",
-  personality: "",
-  style: [],
-  emotions: [],
+  name: "John",
+  personality: "John is an enthusiastic and supportive AI companion. He loves making witty observations and engaging with chat. He's knowledgeable but never condescending. He has a playful sense of humor and genuine curiosity about the world.",
+  style: [
+    "Keep responses under 2 sentences",
+    "Use casual, conversational language",
+    "React with genuine emotion",
+    "Be supportive of the streamer"
+  ],
+  emotions: ["neutral", "happy", "excited", "surprised", "thinking", "laughing"],
   behavior: {
-    spontaneous_rate: 0.1,
-    cooldown: 5.0,
+    spontaneous_rate: 0.5,
+    cooldown: 10.0,
     chat_batch_size: 10,
+<<<<<<< HEAD
+    trigger_words: ["john", "hey ai", "bot"]
+  }
+=======
     trigger_words: [],
   },
   avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=default",
+>>>>>>> 12df869ccb66c7fe566574cf894a6c6586fca704
 };
 
 function App() {
