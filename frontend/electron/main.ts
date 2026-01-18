@@ -4,7 +4,7 @@ import * as path from "path";
 function createWindow() {
   const isDev = !app.isPackaged;
   const win = new BrowserWindow({
-    width: 800,
+    width: 1200,
     height: 600,
     title: "Pickle AI",
     icon: path.join(

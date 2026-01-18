@@ -177,6 +177,7 @@ class Orchestrator:
         
         response = await self.brain.process(batch_event)
         if response:
+            logger.info("vision_response_queued", text=response.text[:50])
             await self.output_queue.put(response)
 
     async def _output_loop(self) -> None:
@@ -194,9 +195,9 @@ class Orchestrator:
                 except asyncio.TimeoutError:
                     continue
 
-                logger.debug(
+                logger.info(
                     "processing_output",
-                    text_len=len(output.text),
+                    text=output.text[:50],
                     emotion=output.emotion,
                 )
 

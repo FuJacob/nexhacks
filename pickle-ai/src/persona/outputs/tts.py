@@ -81,9 +81,10 @@ class TTSProcessor:
     async def handle(self, output: OutputEvent) -> None:
         """Handle output event - queue text for speaking."""
         if not output.text:
+            logger.warning("tts_empty_text")
             return
         await self.queue.put(output.text)
-        logger.debug("tts_queued", text=output.text[:30])
+        logger.info("tts_queued", text=output.text[:50])
 
     async def _speak_loop(self) -> None:
         """Process speech queue sequentially."""
@@ -99,6 +100,7 @@ class TTSProcessor:
                 self.speaking = True
                 if self._on_speaking_change:
                     await self._on_speaking_change(True)
+                logger.info("tts_speaking_started", text=text[:50])
 
                 # Generate and play audio
                 await self._speak(text)
@@ -126,30 +128,17 @@ class TTSProcessor:
             if audio_data is None:
                 return
 
-            # Stream to overlay for lip-sync and playback (OBS captures from browser)
+            # Notify avatar we're speaking (for bounce animation)
             if self.avatar_processor:
-                # Start stream for lip-sync
                 await self.avatar_processor.stream_audio_start(self.sample_rate)
-                
-                # Convert float32 audio to int16 PCM for overlay
-                audio_int16 = (audio_data * 32767).astype(np.int16)
-                audio_bytes = audio_int16.tobytes()
-                
-                # Send audio chunk with text for lip-sync
-                await self.avatar_processor.stream_audio_chunk(audio_bytes, text)
-                
-                # End stream
+
+            # Play audio locally (VB-Cable will route to OBS)
+            logger.info("tts_playing_audio", duration=len(audio_data) / self.sample_rate)
+            await self._play_local(audio_data)
+
+            # Notify avatar we stopped speaking
+            if self.avatar_processor:
                 await self.avatar_processor.stream_audio_end()
-                
-                # Wait for audio duration (so speaking state stays active)
-                duration = len(audio_data) / self.sample_rate
-                await asyncio.sleep(duration)
-                
-                logger.debug("tts_streamed_to_overlay", duration_sec=duration)
-            else:
-                # Fallback: play audio locally when no avatar connection
-                logger.info("tts_playing_local", reason="no_avatar_processor")
-                await self._play_local(audio_data)
 
         except Exception as e:
             logger.error("tts_speak_error", error=str(e))

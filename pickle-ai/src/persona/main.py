@@ -44,8 +44,8 @@ async def main() -> None:
         persona_config = PersonaConfig.from_yaml(settings.persona_config)
         logger.info("persona_loaded", name=persona_config.name)
 
-        # Initialize components
-        llm_client = LLMClient(api_key=settings.gemini_api_key)
+        # Initialize components - using Ollama (local LLM)
+        llm_client = LLMClient(model=settings.ollama_model)
 
         # Initialize token compressor
         compressor = None

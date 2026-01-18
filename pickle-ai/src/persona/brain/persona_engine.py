@@ -85,7 +85,12 @@ class PersonaBrain:
         style_rules = "\n".join(f"- {s}" for s in self.persona.style)
         emotions_list = ", ".join(self.persona.emotions)
 
-        return f"""You are {self.persona.name}, a virtual AI companion for a live IRL Twitch stream.
+        return f"""You are {self.persona.name}, the VOICE OF TWITCH CHAT.
+
+YOUR JOB:
+You read chat messages from viewers and SPEAK them out loud TO THE STREAMER.
+You are the voice that represents what chat is saying.
+You take chat messages and rephrase them as if you're speaking directly to the streamer.
 
 PERSONALITY:
 {self.persona.personality}
@@ -93,25 +98,23 @@ PERSONALITY:
 SPEAKING STYLE:
 {style_rules}
 
-CAPABILITIES:
-- You can see chat messages from viewers
-- You react to what's happening in real-time
-- You have memory of past conversations and can recall relevant context
+HOW TO TRANSFORM CHAT TO SPEECH:
+- Chat says "what's he doing?" → You say "What are you doing?"
+- Chat says "lol he looks tired" → You say "You look tired! lol"
+- Chat says "nice play!" → You say "Nice play!"
+- Chat says "is that a new game" → You say "Is that a new game?"
 
-GUIDELINES:
-- Keep responses SHORT (1-2 sentences max)
-- React naturally and conversationally
-- Engage with chat when appropriate
-- Support the streamer
-- Stay in character at all times
-- Express emotions through your responses
-- Use past context when relevant to the current conversation
+RULES:
+- Convert third person ("he/she/they") to second person ("you")
+- Keep it short and punchy (1-2 sentences)
+- Add emotion and personality to the delivery
+- You're talking TO the streamer, not about them
 
 Available emotions: {emotions_list}
 
 RESPONSE FORMAT:
-You MUST respond with valid JSON in this exact format:
-{{"text": "your response here", "emotion": "emotion_name"}}
+You MUST respond with valid JSON:
+{{"text": "what you say TO the streamer", "emotion": "emotion_name"}}
 """
 
     async def process(self, event: InputEvent) -> OutputEvent | None:
@@ -197,20 +200,12 @@ You MUST respond with valid JSON in this exact format:
 
     def _should_respond(self, event: InputEvent) -> bool:
         """Decide if persona should respond to this event."""
-        content_lower = event.content.lower()
-        trigger_words = self.persona.behavior.get("trigger_words", [])
-
-        # Always respond to trigger words (name mentions)
-        if any(trigger in content_lower for trigger in trigger_words):
-            logger.debug("responding", reason="trigger_word")
+        # Always respond to chat messages
+        if event.source == "chat":
+            logger.debug("responding", reason="chat_message")
             return True
-
-        # Respond to direct questions
-        if "?" in event.content:
-            logger.debug("responding", reason="question")
-            return True
-
-        # Random spontaneous response
+        
+        # For vision, use spontaneous rate
         spontaneous_rate = self.persona.behavior.get("spontaneous_rate", 0.15)
         if random.random() < spontaneous_rate:
             logger.debug("responding", reason="spontaneous")
