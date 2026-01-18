@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     twitch_bot_id: str = Field(..., alias="TWITCH_BOT_ID")
     twitch_channel: str = Field(..., alias="TWITCH_CHANNEL")
     twitch_bot_username: str = Field(..., alias="TWITCH_BOT_USERNAME")
+    twitch_refresh_token: str = Field("", alias="TWITCH_REFRESH_TOKEN")
 
     # Audio
     audio_output_device: str = Field("MacBook Pro Speakers", alias="AUDIO_OUTPUT_DEVICE")

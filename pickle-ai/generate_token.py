@@ -94,13 +94,16 @@ def get_token():
         if res.status_code == 200:
             json_data = res.json()
             access_token = json_data["access_token"]
+            refresh_token = json_data.get("refresh_token", "")
             
             print("\n" + "="*40)
-            print("SUCCESS! Here is your new Token:")
+            print("SUCCESS! Here are your new Tokens:")
             print("="*40)
             print(f"TWITCH_BOT_TOKEN={access_token}")
+            if refresh_token:
+                print(f"TWITCH_REFRESH_TOKEN={refresh_token}")
             print("="*40)
-            print("\nPlease update your .env file with this token and restart the bot.")
+            print("\nPlease update your .env file with these tokens and restart the bot.")
         else:
             print(f"Error exchanging token: {res.status_code} - {res.text}")
     except Exception as e:

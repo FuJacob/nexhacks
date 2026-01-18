@@ -3,8 +3,10 @@
 import asyncio
 from datetime import datetime
 from twitchio.ext import commands
+from twitchio import errors as twitch_errors
 
 from .base import InputEvent, InputProcessor
+from .twitch_auth import refresh_twitch_token, update_env_file
 from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -23,6 +25,7 @@ class TwitchChatProcessor(commands.Bot, InputProcessor):
         client_id: str | None = None,
         client_secret: str | None = None,
         bot_id: str | None = None,
+        refresh_token: str | None = None,
         batch_interval: float = 2.0,
         max_batch_size: int = 10,
     ):
@@ -33,6 +36,10 @@ class TwitchChatProcessor(commands.Bot, InputProcessor):
             initial_channels=[channel],
         )
         self.channel = channel
+        self._client_id = client_id
+        self._client_secret = client_secret
+        self._refresh_token = refresh_token
+        self._token = token
         self.batch_interval = batch_interval
         self.max_batch_size = max_batch_size
         self.message_buffer: list[dict] = []
@@ -131,9 +138,32 @@ class TwitchChatProcessor(commands.Bot, InputProcessor):
             await self.start()
         except asyncio.CancelledError:
             logger.info("twitch_processor_cancelled")
+        except twitch_errors.AuthenticationError as e:
+            logger.warning("twitch_auth_failed", error=str(e))
+            
+            # Attempt to refresh token
+            if self._refresh_token and self._client_id and self._client_secret:
+                logger.info("twitch_attempting_token_refresh")
+                new_tokens = await refresh_twitch_token(
+                    self._client_id,
+                    self._client_secret,
+                    self._refresh_token,
+                )
+                if new_tokens:
+                    # Update .env file for persistence
+                    update_env_file("TWITCH_BOT_TOKEN", new_tokens["access_token"])
+                    update_env_file("TWITCH_REFRESH_TOKEN", new_tokens["refresh_token"])
+                    logger.info("twitch_token_refreshed_successfully", 
+                                hint="Restart to use new token")
+                else:
+                    logger.error("twitch_token_refresh_failed",
+                                hint="Run 'python generate_token.py' to get new tokens")
+            else:
+                logger.error("twitch_no_refresh_token",
+                            hint="Add TWITCH_REFRESH_TOKEN to .env or run generate_token.py")
         except Exception as e:
             logger.error("twitch_processor_error", error=str(e))
-            raise
+            # Do not raise, so other processors (Vision) can continue
 
     async def stop(self) -> None:
         """Stop the Twitch chat processor."""
