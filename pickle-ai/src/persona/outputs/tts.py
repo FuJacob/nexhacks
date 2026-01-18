@@ -126,45 +126,31 @@ class TTSProcessor:
             if audio_data is None:
                 return
 
-            # If avatar processor is available, stream to overlay
+            # Stream to overlay for lip-sync and playback (OBS captures from browser)
             if self.avatar_processor:
-                await self._stream_to_avatar(audio_data, text)
+                # Start stream for lip-sync
+                await self.avatar_processor.stream_audio_start(self.sample_rate)
+                
+                # Convert float32 audio to int16 PCM for overlay
+                audio_int16 = (audio_data * 32767).astype(np.int16)
+                audio_bytes = audio_int16.tobytes()
+                
+                # Send audio chunk with text for lip-sync
+                await self.avatar_processor.stream_audio_chunk(audio_bytes, text)
+                
+                # End stream
+                await self.avatar_processor.stream_audio_end()
+                
+                # Wait for audio duration (so speaking state stays active)
+                duration = len(audio_data) / self.sample_rate
+                await asyncio.sleep(duration)
+                
+                logger.debug("tts_streamed_to_overlay", duration_sec=duration)
             else:
-                # Fallback: play locally
-                await self._play_local(audio_data)
+                logger.warning("tts_no_avatar_processor", text=text[:30])
 
         except Exception as e:
             logger.error("tts_speak_error", error=str(e))
-
-    async def _stream_to_avatar(self, audio_data: np.ndarray, text: str) -> None:
-        """Stream audio to avatar overlay for lip-sync."""
-        try:
-            # Convert float32 audio to int16 PCM
-            audio_int16 = (audio_data * 32767).astype(np.int16)
-            audio_bytes = audio_int16.tobytes()
-            
-            # Start stream
-            await self.avatar_processor.stream_audio_start(self.sample_rate)
-            
-            # Send audio in chunks (simulate streaming)
-            chunk_size = self.sample_rate * 2  # 2 seconds worth of samples
-            for i in range(0, len(audio_bytes), chunk_size * 2):  # *2 for int16 bytes
-                chunk = audio_bytes[i:i + chunk_size * 2]
-                await self.avatar_processor.stream_audio_chunk(chunk, text if i == 0 else "")
-                # Small delay to simulate real streaming
-                await asyncio.sleep(0.1)
-            
-            # End stream
-            await self.avatar_processor.stream_audio_end()
-            
-            # Wait for audio duration
-            duration = len(audio_data) / self.sample_rate
-            await asyncio.sleep(duration)
-            
-            logger.debug("tts_streamed_to_avatar", duration_sec=duration)
-            
-        except Exception as e:
-            logger.error("tts_stream_error", error=str(e))
 
     async def _play_local(self, audio_data: np.ndarray) -> None:
         """Play audio locally (fallback when no avatar)."""
