@@ -1,6 +1,6 @@
 {
   "voice": {
-    "voice_model": "aura-asteria-en"
+    "voice_model": "aura-athena-en"
   },
   "persona": {
     "name": "Pixel",
@@ -21,9 +21,9 @@
       "laughing"
     ],
     "behavior": {
-      "spontaneous_rate": 0.15,
-      "cooldown": 3.0,
-      "chat_batch_size": 10,
+      "spontaneous_rate": 0.48,
+      "cooldown": 12.0,
+      "chat_batch_size": 7,
       "trigger_words": [
         "pixel",
         "hey ai",

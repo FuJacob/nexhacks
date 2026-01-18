@@ -1,22 +1,42 @@
 @import "tailwindcss";
 
 @theme {
-  --color-pickle-green: #4a7c59; 
+  --color-pickle-green: #4a7c59;
 }
 
 body {
   @apply bg-black text-white min-h-screen antialiased selection:bg-white selection:text-black;
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
+  width: 100%;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
 }
 
 .title-bar-drag-region {
-  @apply w-full h-8 fixed top-0 left-0 z-50;
   -webkit-app-region: drag;
   user-select: none;
+  pointer-events: auto;
+}
+
+/* Ensure buttons and interactive elements are not draggable */
+button,
+input,
+textarea,
+select,
+a,
+[role="button"] {
+  -webkit-app-region: no-drag;
 }
 
 /* Animations */
@@ -36,8 +56,9 @@ body {
 }
 
 @keyframes pulse-slow {
-  0%, 100% {
-    box-shadow: 0 0 0 0px rgba(124, 58, 237, 0.2); 
+  0%,
+  100% {
+    box-shadow: 0 0 0 0px rgba(124, 58, 237, 0.2);
     transform: scale(1);
   }
   50% {
@@ -51,8 +72,12 @@ body {
 }
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .animate-fade-in {
@@ -66,4 +91,141 @@ body {
 .snap-x {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Custom scrollbar for the app */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Glow effect for buttons */
+@keyframes glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 20px rgba(255, 255, 255, 0.1),
+      0 0 40px rgba(139, 92, 246, 0.1);
+  }
+  50% {
+    box-shadow:
+      0 0 30px rgba(255, 255, 255, 0.2),
+      0 0 60px rgba(139, 92, 246, 0.2);
+  }
+}
+
+.animate-glow {
+  animation: glow 3s ease-in-out infinite;
+}
+
+/* Gradient text utility */
+.gradient-text {
+  @apply bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent;
+}
+
+/* Glass morphism card */
+.glass-card {
+  @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl;
+}
+
+/* Shimmer loading effect */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Smooth range slider styling */
+input[type="range"] {
+  @apply appearance-none bg-transparent cursor-pointer w-full h-2;
+}
+
+input[type="range"]::-webkit-slider-track {
+  @apply h-2 rounded-full bg-zinc-800;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  @apply appearance-none w-5 h-5 rounded-full bg-white shadow-lg border-2 border-zinc-900;
+  margin-top: -6px;
+  transition: transform 0.15s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+input[type="range"]::-webkit-slider-thumb:active {
+  transform: scale(1.05);
+}
+
+/* Range slider background gradient without affecting text */
+input[type="range"].tone-slider::-webkit-slider-runnable-track {
+  @apply bg-zinc-800 rounded-full;
+  background: linear-gradient(
+    to right,
+    rgb(139 92 246 / 0.3) 0%,
+    rgb(139 92 246) var(--value, 50%),
+    rgb(39 39 42) var(--value, 50%),
+    rgb(39 39 42) 100%
+  );
+}
+
+input[type="range"].humor-slider::-webkit-slider-runnable-track {
+  @apply bg-zinc-800 rounded-full;
+  background: linear-gradient(
+    to right,
+    rgb(236 72 153 / 0.3) 0%,
+    rgb(236 72 153) var(--value, 50%),
+    rgb(39 39 42) var(--value, 50%),
+    rgb(39 39 42) 100%
+  );
+}
+
+input[type="range"].focus-slider::-webkit-slider-runnable-track {
+  @apply bg-zinc-800 rounded-full;
+  background: linear-gradient(
+    to right,
+    rgb(59 130 246 / 0.3) 0%,
+    rgb(59 130 246) var(--value, 50%),
+    rgb(39 39 42) var(--value, 50%),
+    rgb(39 39 42) 100%
+  );
+}
+
+input[type="range"].presence-slider::-webkit-slider-runnable-track {
+  @apply bg-zinc-800 rounded-full;
+  background: linear-gradient(
+    to right,
+    rgb(168 85 247 / 0.3) 0%,
+    rgb(168 85 247) var(--value, 50%),
+    rgb(39 39 42) var(--value, 50%),
+    rgb(39 39 42) 100%
+  );
 }
