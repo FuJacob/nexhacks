@@ -11,7 +11,12 @@ from dotenv import load_dotenv
 from config.settings import get_settings
 from .brain.llm_client import LLMClient
 from .brain.persona_engine import PersonaBrain, PersonaConfig
+from .brain.assembler import ContextAssembler
+from .brain.compressor import TokenCompressor
+from .brain.memory.short_term import ShortTermMemory
+from .brain.memory.long_term import LongTermMemory
 from .inputs.twitch_chat import TwitchChatProcessor
+from .inputs.vision import VisionInputProcessor
 from .outputs.tts import TTSProcessor
 from .outputs.avatar import AvatarProcessor
 from .orchestrator import Orchestrator
@@ -42,9 +47,45 @@ async def main() -> None:
         # Initialize components
         llm_client = LLMClient(api_key=settings.gemini_api_key)
 
+        # Initialize token compressor
+        compressor = None
+        if settings.compression_enabled and settings.token_company_api_key:
+            compressor = TokenCompressor(
+                api_key=settings.token_company_api_key,
+                default_aggressiveness=settings.compression_aggressiveness,
+            )
+            logger.info(
+                "compressor_enabled",
+                aggressiveness=settings.compression_aggressiveness,
+            )
+        else:
+            logger.info("compressor_disabled")
+
+        # Initialize memory system
+        logger.info("initializing_memory_system")
+        stm = ShortTermMemory(max_size=15)
+        ltm = LongTermMemory(
+            persist_directory="./data/chromadb",
+            collection_name="persona_memory",
+        )
+        context_assembler = ContextAssembler(
+            stm=stm,
+            ltm=ltm,
+            compressor=compressor,
+            stm_message_count=10,
+            ltm_result_count=3,
+            ltm_min_relevance=0.4,
+        )
+        logger.info(
+            "memory_system_initialized",
+            stm_max_size=stm.max_size,
+            ltm_count=ltm.count,
+        )
+
         brain = PersonaBrain(
             llm_client=llm_client,
             persona_config=persona_config,
+            context_assembler=context_assembler,
         )
 
         tts = TTSProcessor(
@@ -73,6 +114,22 @@ async def main() -> None:
             max_batch_size=persona_config.behavior.get("chat_batch_size", 10),
         )
         orchestrator.add_input(twitch)
+
+        # Add Vision input if enabled
+        if settings.vision_enabled:
+            vision = VisionInputProcessor(
+                server_url=settings.vision_server_url,
+                poll_interval=3.0,
+                use_websocket=True,
+                auto_start_vision=True,
+            )
+            orchestrator.add_input(vision)
+            logger.info(
+                "vision_enabled",
+                server_url=settings.vision_server_url,
+            )
+        else:
+            logger.info("vision_disabled")
 
         # Create FastAPI app
         app = create_app(avatar)

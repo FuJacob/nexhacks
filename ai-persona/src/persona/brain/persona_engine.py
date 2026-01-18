@@ -8,7 +8,7 @@ from typing import Any
 
 import yaml
 
-from .context_manager import ContextManager
+from .assembler import ContextAssembler
 from .llm_client import LLMClient, PersonaResponse
 from ..inputs.base import InputEvent
 from ..utils.logging import get_logger
@@ -55,17 +55,29 @@ class PersonaConfig:
 class PersonaBrain:
     """
     LLM-based persona that processes inputs and generates responses.
-    Maintains conversation context and personality consistency.
+
+    Uses RAG-based memory system:
+    - Short-term memory (STM): Rolling window of last N messages for coherence
+    - Long-term memory (LTM): Vector DB for semantic search of important memories
     """
 
     def __init__(
         self,
         llm_client: LLMClient,
         persona_config: PersonaConfig,
+        context_assembler: ContextAssembler,
     ):
+        """
+        Initialize PersonaBrain with memory system.
+
+        Args:
+            llm_client: The LLM client for generating responses
+            persona_config: Persona configuration
+            context_assembler: The context assembler managing STM and LTM
+        """
         self.llm = llm_client
         self.persona = persona_config
-        self.context = ContextManager(max_tokens=4000)
+        self.assembler = context_assembler
         self.last_response_time: datetime | None = None
 
     def _build_system_prompt(self) -> str:
@@ -84,6 +96,7 @@ SPEAKING STYLE:
 CAPABILITIES:
 - You can see chat messages from viewers
 - You react to what's happening in real-time
+- You have memory of past conversations and can recall relevant context
 
 GUIDELINES:
 - Keep responses SHORT (1-2 sentences max)
@@ -92,6 +105,7 @@ GUIDELINES:
 - Support the streamer
 - Stay in character at all times
 - Express emotions through your responses
+- Use past context when relevant to the current conversation
 
 Available emotions: {emotions_list}
 
@@ -110,8 +124,21 @@ You MUST respond with valid JSON in this exact format:
         Returns:
             OutputEvent if response generated, None otherwise
         """
-        # Add event to context
-        self.context.add_input(event.source, event.content)
+        # Extract user from metadata if available
+        user = None
+        if event.metadata:
+            users = event.metadata.get("users", [])
+            if users:
+                user = users[0]  # Use first user from batch
+
+        # Process input through assembler (stores in STM and potentially LTM)
+        self.assembler.process_input(
+            content=event.content,
+            source=event.source,
+            user=user,
+            role="user",
+            metadata=event.metadata,
+        )
 
         # Check if we should respond
         if not self._should_respond(event):
@@ -126,11 +153,12 @@ You MUST respond with valid JSON in this exact format:
                 logger.debug("skipping_response", reason="cooldown", elapsed=elapsed)
                 return None
 
-        # Build messages
-        messages = [
-            {"role": "system", "content": self._build_system_prompt()},
-            *self.context.get_messages(),
-        ]
+        # Build messages using context assembler (includes LTM search)
+        system_prompt = self._build_system_prompt()
+        messages = self.assembler.build_messages(
+            current_input=event.content,
+            system_prompt=system_prompt,
+        )
 
         # Get LLM response with structured output
         try:
@@ -146,15 +174,19 @@ You MUST respond with valid JSON in this exact format:
         if emotion not in self.persona.emotions:
             emotion = "neutral"
 
-        # Update state
-        self.context.add_response(text)
+        # Store response in memory
+        self.assembler.process_response(text)
         self.last_response_time = datetime.now()
 
+        # Log memory stats
+        stats = self.assembler.get_memory_stats()
         logger.info(
             "persona_response",
             text=text[:50],
             emotion=emotion,
             source=event.source,
+            stm_count=stats["stm_count"],
+            ltm_count=stats["ltm_count"],
         )
 
         return OutputEvent(
@@ -201,3 +233,7 @@ You MUST respond with valid JSON in this exact format:
 
         # Normal priority
         return 1
+
+    def get_memory_stats(self) -> dict[str, Any]:
+        """Get current memory statistics."""
+        return self.assembler.get_memory_stats()
