@@ -213,12 +213,6 @@ function App() {
                     settings.voice.voice_model}
                 </span>
               </div>
-              <div className="flex justify-between mb-2 text-[0.95rem] border-b border-zinc-900 pb-2 last:border-0 last:pb-0 last:mb-0">
-                <span className="text-zinc-400">Sample Rate:</span>
-                <span className="font-semibold font-mono text-white">
-                  {settings.voice.sample_rate} Hz
-                </span>
-              </div>
             </div>
           )}
 

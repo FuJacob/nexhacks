@@ -13,16 +13,10 @@ logger = get_logger(__name__)
 AVAILABLE_VOICES = [
     {"id": "aura-asteria-en", "name": "Asteria", "gender": "female", "accent": "American"},
     {"id": "aura-luna-en", "name": "Luna", "gender": "female", "accent": "American"},
-    {"id": "aura-stella-en", "name": "Stella", "gender": "female", "accent": "American"},
     {"id": "aura-athena-en", "name": "Athena", "gender": "female", "accent": "British"},
-    {"id": "aura-hera-en", "name": "Hera", "gender": "female", "accent": "American"},
     {"id": "aura-orion-en", "name": "Orion", "gender": "male", "accent": "American"},
-    {"id": "aura-arcas-en", "name": "Arcas", "gender": "male", "accent": "American"},
-    {"id": "aura-perseus-en", "name": "Perseus", "gender": "male", "accent": "American"},
     {"id": "aura-angus-en", "name": "Angus", "gender": "male", "accent": "Irish"},
-    {"id": "aura-orpheus-en", "name": "Orpheus", "gender": "male", "accent": "American"},
     {"id": "aura-helios-en", "name": "Helios", "gender": "male", "accent": "British"},
-    {"id": "aura-zeus-en", "name": "Zeus", "gender": "male", "accent": "American"},
 ]
 
 
@@ -30,7 +24,6 @@ class VoiceSettings(BaseModel):
     """Voice configuration settings."""
     
     voice_model: str = Field(default="aura-asteria-en", description="Deepgram voice model ID")
-    sample_rate: int = Field(default=24000, description="Audio sample rate in Hz")
     
 
 class PickleSettings(BaseModel):
