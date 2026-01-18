@@ -3,29 +3,92 @@
 from pathlib import Path
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 from ..outputs.avatar import AvatarProcessor
+from ..outputs.tts import TTSProcessor
 from ..utils.logging import get_logger
+from .settings_manager import (
+    SettingsManager,
+    VoiceSettings,
+    PickleSettings,
+    get_settings_manager,
+)
 
 logger = get_logger(__name__)
 
 STATIC_DIR = Path(__file__).parent / "static"
 
 
-def create_app(avatar_processor: AvatarProcessor) -> FastAPI:
+class VoiceUpdateRequest(BaseModel):
+    """Request model for updating voice settings."""
+    voice_model: str
+    sample_rate: int = 24000
+
+
+def create_app(
+    avatar_processor: AvatarProcessor,
+    tts_processor: TTSProcessor | None = None,
+    settings_manager: SettingsManager | None = None,
+) -> FastAPI:
     """Create FastAPI application with avatar WebSocket."""
-    app = FastAPI(title="AI Persona", version="0.1.0")
+    app = FastAPI(title="Pickle AI", version="0.1.0")
+    
+    # Use provided settings manager or get global instance
+    sm = settings_manager or get_settings_manager()
+    
+    # Add CORS middleware for frontend
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     @app.get("/")
     async def root():
         """Root endpoint - health check."""
-        return {"status": "ok", "name": "AI Persona"}
+        return {"status": "ok", "name": "Pickle AI"}
 
     @app.get("/health")
     async def health():
         """Health check endpoint."""
+        return {"status": "healthy"}
+    
+    # ========== Settings API ==========
+    
+    @app.get("/api/settings", response_model=PickleSettings)
+    async def get_settings():
+        """Get all current settings."""
+        return sm.get_settings()
+    
+    @app.get("/api/settings/voice", response_model=VoiceSettings)
+    async def get_voice_settings():
+        """Get current voice settings."""
+        return sm.get_voice_settings()
+    
+    @app.put("/api/settings/voice", response_model=VoiceSettings)
+    async def update_voice_settings(request: VoiceUpdateRequest):
+        """Update voice settings."""
+        new_settings = VoiceSettings(
+            voice_model=request.voice_model,
+            sample_rate=request.sample_rate,
+        )
+        
+        # Update TTS processor if available
+        if tts_processor:
+            tts_processor.update_voice(request.voice_model, request.sample_rate)
+        
+        return await sm.update_voice_settings(new_settings)
+    
+    @app.get("/api/voices")
+    async def get_available_voices():
+        """Get list of available voice models."""
+        return {"voices": sm.get_available_voices()}
         return {"status": "healthy"}
 
     @app.get("/overlay")

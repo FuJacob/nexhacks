@@ -53,6 +53,13 @@ class TTSProcessor:
         """Set callback for speaking state changes."""
         self._on_speaking_change = callback
 
+    def update_voice(self, voice_model: str, sample_rate: int | None = None) -> None:
+        """Update voice settings on the fly."""
+        self.voice_model = voice_model
+        if sample_rate is not None:
+            self.sample_rate = sample_rate
+        logger.info("tts_voice_updated", voice=voice_model, sample_rate=self.sample_rate)
+
     async def start(self) -> None:
         """Start the TTS processor."""
         self._running = True
