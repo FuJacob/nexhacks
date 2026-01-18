@@ -33,8 +33,12 @@ class Settings(BaseSettings):
     twitch_bot_username: str = Field(..., alias="TWITCH_BOT_USERNAME")
     twitch_refresh_token: str = Field("", alias="TWITCH_REFRESH_TOKEN")
 
-    # Audio
+    # Audio Output (TTS)
     audio_output_device: str = Field("MacBook Pro Speakers", alias="AUDIO_OUTPUT_DEVICE")
+
+    # Audio Input (STT)
+    stt_enabled: bool = Field(True, alias="STT_ENABLED")
+    audio_input_device: str = Field("", alias="AUDIO_INPUT_DEVICE")  # Empty = default mic
 
     # Server
     host: str = Field("127.0.0.1", alias="HOST")

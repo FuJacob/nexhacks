@@ -212,6 +212,8 @@ class ContextAssembler:
                 context_parts.append(f"[You previously said]: {entry.content}")
             elif entry.source == "vision":
                 context_parts.append(f"[What you see on stream]: {entry.content}")
+            elif entry.source == "speech":
+                context_parts.append(f"[Streamer said]: {entry.content}")
             elif entry.source == "chat":
                 # Format chat message clearly - this is what needs to be rephrased
                 context_parts.append(f"[Chat from {entry.user or 'viewer'}]: {entry.content}")

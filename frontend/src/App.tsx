@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import "./index.css";
 import type { PickleSettings, Voice, PersonaSettings } from "./types";
+import { StepWelcome } from "./components/onboarding/StepWelcome";
 import { StepIdentity } from "./components/onboarding/StepIdentity";
 import { StepSpirit } from "./components/onboarding/StepSpirit";
 import { StepRhythm } from "./components/onboarding/StepRhythm";
 import { StepReview } from "./components/onboarding/StepReview";
-import { Dashboard } from "./components/Dashboard";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
 
@@ -19,25 +19,20 @@ const DEFAULT_PERSONA: PersonaSettings = {
     "React with genuine emotion",
     "Be supportive of the streamer"
   ],
-  emotions: ["neutral", "happy", "excited", "surprised", "thinking", "laughing"],
+  emotions: [],
   behavior: {
     spontaneous_rate: 0.5,
     cooldown: 10.0,
     chat_batch_size: 10,
-<<<<<<< HEAD
-    trigger_words: ["john", "hey ai", "bot"]
-  }
-=======
     trigger_words: [],
   },
   avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=default",
->>>>>>> 12df869ccb66c7fe566574cf894a6c6586fca704
 };
 
 function App() {
-  // Wizard State
-  const [step, setStep] = useState(1);
-  const totalSteps = 4;
+  // Wizard State - 0 = welcome, 1-4 = steps
+  const [step, setStep] = useState(0);
+  const totalSteps = 5; // 0=welcome, 1=identity, 2=spirit, 3=rhythm, 4=review
 
   // Data State
   const [, setSettings] = useState<PickleSettings | null>(null);
@@ -46,13 +41,13 @@ function App() {
   const [persona, setPersona] = useState<PersonaSettings>(DEFAULT_PERSONA);
 
   // Spirit Step UI State
-  const [isCustomSpirit, setIsCustomSpirit] = useState(false); // Magic/Mirror vs Custom
+  const [isCustomSpirit, setIsCustomSpirit] = useState(false);
 
   // Loading/Saving
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isLive, setIsLive] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -62,13 +57,6 @@ function App() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [step]);
-
-  // Scroll to top when going live
-  useEffect(() => {
-    if (isLive) {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  }, [isLive]);
 
   const loadData = async () => {
     try {
@@ -100,20 +88,28 @@ function App() {
       console.error(err);
       setError("Could not connect to Pickle backend. Is it running?");
     } finally {
-      // Use a timeout to safely remove loading state if needed, or just set it
       setLoading(false);
     }
   };
 
   const handleNext = () => {
-    if (step < totalSteps) setStep(step + 1);
+    if (step < totalSteps - 1) setStep(step + 1);
   };
 
   const handleBack = () => {
     if (step > 1) setStep(step - 1);
   };
 
-  const handleGoLive = async () => {
+  const handleGetStarted = () => {
+    setStep(1);
+  };
+
+  const handleRedo = () => {
+    setSaved(false);
+    setStep(0);
+  };
+
+  const handleSave = async () => {
     setSaving(true);
     try {
       // 1. Save Voice
@@ -130,18 +126,12 @@ function App() {
         body: JSON.stringify(persona),
       });
 
-      // Go to dashboard
-      setIsLive(true);
+      setSaved(true);
     } catch (err) {
       alert("Failed to save settings.");
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleBackToSettings = () => {
-    setIsLive(false);
-    setStep(1);
   };
 
   if (loading) {
@@ -183,10 +173,12 @@ function App() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(239,68,68,0.05)_0%,transparent_70%)]"></div>
 
         <div className="relative z-10 flex flex-col items-center gap-6 text-center px-8 max-w-md">
-          {/* Animated warning icon */}
+          {/* Warning icon */}
           <div className="relative">
             <div className="w-20 h-20 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/20">
-              <span className="text-4xl">⚠️</span>
+              <svg className="w-10 h-10 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
             </div>
             <div className="absolute inset-0 w-20 h-20 rounded-full border border-red-500/30 animate-ping"></div>
           </div>
@@ -208,14 +200,32 @@ function App() {
     );
   }
 
-  // Show dashboard if live
-  if (isLive) {
+  // Show success screen after saving
+  if (saved) {
     return (
-      <Dashboard
-        personaName={persona.name || "AI Assistant"}
-        persona={persona}
-        onBackToSettings={handleBackToSettings}
-      />
+      <div className="flex h-screen w-full items-center justify-center bg-black text-white flex-col relative overflow-hidden">
+        <div className="title-bar-drag-region h-12 w-full absolute top-0 left-0 z-50"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/10 via-black to-blue-900/10"></div>
+
+        <div className="relative z-10 flex flex-col items-center gap-6 text-center px-8 max-w-md">
+          <div className="w-20 h-20 rounded-full bg-green-500/20 flex items-center justify-center border-2 border-green-500/40">
+            <svg className="w-10 h-10 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold">Settings Saved!</h1>
+            <p className="text-zinc-400 text-sm leading-relaxed">
+              <span className="gradient-text font-bold">{persona.name}</span> is ready to give your chat a voice.
+            </p>
+          </div>
+
+          <button onClick={handleRedo} className="btn-ghost mt-4 text-zinc-500 hover:text-white">
+            Redo Onboarding
+          </button>
+        </div>
+      </div>
     );
   }
 
@@ -229,22 +239,28 @@ function App() {
       {/* Drag region */}
       <div className="title-bar-drag-region h-12 w-full fixed top-0 left-0 z-50"></div>
 
-      {/* Progress Dots / Header */}
-      <header className="fixed top-0 left-0 w-full p-6 md:p-8 flex justify-center items-center z-40">
-        <div className="flex gap-3">
-          {[1, 2, 3, 4].map((s) => (
-            <div
-              key={s}
-              className={`progress-dot ${
-                step === s ? "active" : step > s ? "completed" : "pending"
-              }`}
-            />
-          ))}
-        </div>
-      </header>
+      {/* Progress Dots / Header - only show after welcome */}
+      {step > 0 && (
+        <header className="fixed top-0 left-0 w-full p-6 md:p-8 flex justify-center items-center z-40">
+          <div className="flex gap-3">
+            {[1, 2, 3, 4].map((s) => (
+              <div
+                key={s}
+                className={`progress-dot ${
+                  step === s ? "active" : step > s ? "completed" : "pending"
+                }`}
+              />
+            ))}
+          </div>
+        </header>
+      )}
 
       {/* Main Content Area */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center pt-28 pb-36 px-6 md:px-8 w-full max-w-4xl mx-auto">
+        {step === 0 && (
+          <StepWelcome onGetStarted={handleGetStarted} />
+        )}
+
         {step === 1 && (
           <StepIdentity
             name={persona.name}
@@ -279,38 +295,43 @@ function App() {
           <StepReview
             name={persona.name}
             persona={persona}
-            onSave={handleGoLive}
+            onSave={handleSave}
+            onRedo={handleRedo}
             isSaving={saving}
           />
         )}
       </main>
 
-      {/* Navigation Footer */}
-      <footer className="fixed bottom-0 left-0 w-full p-6 md:p-8 flex justify-between items-center z-40 pointer-events-none">
-        <div className="pointer-events-auto">
-          {step > 1 && step < 4 && (
-            <button
-              onClick={handleBack}
-              className="btn-ghost btn-sm flex items-center gap-2"
-            >
-              <span>←</span>
-              Back
-            </button>
-          )}
-        </div>
+      {/* Navigation Footer - only show for steps 1-3 */}
+      {step > 0 && step < 4 && (
+        <footer className="fixed bottom-0 left-0 w-full p-6 md:p-8 flex justify-between items-center z-40 pointer-events-none">
+          <div className="pointer-events-auto">
+            {step > 1 && (
+              <button
+                onClick={handleBack}
+                className="btn-ghost btn-sm flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Back
+              </button>
+            )}
+          </div>
 
-        <div className="pointer-events-auto">
-          {step < 4 && (
+          <div className="pointer-events-auto">
             <button
               onClick={handleNext}
               className="btn-primary flex items-center gap-2 animate-glow"
             >
               Continue
-              <span>→</span>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
             </button>
-          )}
-        </div>
-      </footer>
+          </div>
+        </footer>
+      )}
     </div>
   );
 }

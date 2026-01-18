@@ -21,10 +21,15 @@
       "laughing"
     ],
     "behavior": {
-      "spontaneous_rate": 0.57,
-      "cooldown": 8.700000000000003,
-      "chat_batch_size": 5,
-      "trigger_words": ["hi ai", "hello pixel", "hey pixel", "pixel"]
+      "spontaneous_rate": 0.7,
+      "cooldown": 3.6000000000000014,
+      "chat_batch_size": 3,
+      "trigger_words": [
+        "hi ai",
+        "hello pixel",
+        "hey pixel",
+        "pixel"
+      ]
     }
   }
 }

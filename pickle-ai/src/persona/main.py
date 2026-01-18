@@ -133,6 +133,21 @@ async def main() -> None:
         else:
             logger.info("vision_disabled")
 
+        # Add Speech (STT) input if enabled
+        if settings.stt_enabled:
+            from .inputs.speech import SpeechInputProcessor
+            speech = SpeechInputProcessor(
+                api_key=settings.deepgram_api_key,
+                input_device=settings.audio_input_device if settings.audio_input_device else None,
+            )
+            orchestrator.add_input(speech)
+            logger.info(
+                "stt_enabled",
+                device=settings.audio_input_device or "default",
+            )
+        else:
+            logger.info("stt_disabled")
+
         # Create FastAPI app
         app = create_app(avatar)
 

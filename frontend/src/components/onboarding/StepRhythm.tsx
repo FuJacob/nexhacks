@@ -25,26 +25,6 @@ export const StepRhythm: React.FC<StepRhythmProps> = ({
     });
   };
 
-  const addTriggerWord = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      const val = e.currentTarget.value.trim();
-      if (val && !behavior.trigger_words.includes(val)) {
-        setBehavior({
-          ...behavior,
-          trigger_words: [...behavior.trigger_words, val],
-        });
-        e.currentTarget.value = "";
-      }
-    }
-  };
-
-  const removeTriggerWord = (word: string) => {
-    setBehavior({
-      ...behavior,
-      trigger_words: behavior.trigger_words.filter((w) => w !== word),
-    });
-  };
-
   // Dynamic text based on slider position
   const getPresenceText = (score: number) => {
     if (score < 33) return "Speaks only when spoken to directly.";
@@ -124,54 +104,6 @@ export const StepRhythm: React.FC<StepRhythmProps> = ({
             <p className="text-center text-base md:text-lg font-bold text-white min-h-[2.5rem] flex items-center justify-center animate-fade-in">
               "{getPresenceText(presenceScore)}"
             </p>
-          </div>
-        </div>
-
-        {/* Wake Words */}
-        <div className="card-elevated p-6 md:p-8 flex-shrink-0">
-          <div className="flex items-center gap-2 mb-2">
-            <svg
-              className="w-5 h-5 text-zinc-400"
-              fill="currentColor"
-              viewBox="0 0 20 20"
-            >
-              <path
-                fillRule="evenodd"
-                d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <label className="text-sm font-bold uppercase tracking-wider text-white">
-              Wake Words
-            </label>
-          </div>
-          <p className="text-zinc-500 text-sm mb-5 ml-7 font-medium">
-            When should they{" "}
-            <span className="text-zinc-300 font-bold">always</span> listen?
-            Press Enter to add.
-          </p>
-
-          <div className="flex flex-wrap gap-3 min-h-[50px] items-start">
-            {behavior.trigger_words.map((word) => (
-              <span
-                key={word}
-                className="badge badge-primary flex items-center gap-2"
-              >
-                {word}
-                <button
-                  onClick={() => removeTriggerWord(word)}
-                  className="hover:text-red-300 transition-colors font-bold text-base"
-                >
-                  ×
-                </button>
-              </span>
-            ))}
-            <input
-              type="text"
-              placeholder="+ Add Keyword"
-              onKeyDown={addTriggerWord}
-              className="input px-4 py-2 text-sm min-w-[140px] rounded-full"
-            />
           </div>
         </div>
       </div>
