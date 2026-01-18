@@ -23,19 +23,17 @@ export const StepSpirit: React.FC<StepSpiritProps> = ({
   return (
     <div className="flex flex-col w-full animate-enter">
       <div className="text-center mb-8">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight bg-gradient-to-r from-white via-white to-zinc-400 bg-clip-text text-transparent">
-          The Spirit
-        </h1>
-        <p className="text-zinc-400 text-lg">
+        <h1 className="heading-xl mb-4">The Spirit</h1>
+        <p className="text-zinc-400 text-lg font-medium">
           Define the vibe. How should they behave?
         </p>
       </div>
 
       {/* Source of Truth Switch */}
-      <div className="bg-zinc-900/50 p-1.5 rounded-2xl flex mb-10 self-center border border-zinc-800/50 backdrop-blur-sm">
+      <div className="toggle-group mb-10 self-center">
         <button
           onClick={() => setIsCustom(false)}
-          className={`px-5 py-2.5 rounded-xl font-medium text-sm transition-all duration-300 flex items-center gap-2 ${!isCustom ? "bg-white text-black shadow-lg shadow-white/10" : "text-zinc-400 hover:text-white"}`}
+          className={`toggle-item flex items-center gap-2 ${!isCustom ? "active" : ""}`}
         >
           <svg
             className="w-4 h-4"
@@ -54,7 +52,7 @@ export const StepSpirit: React.FC<StepSpiritProps> = ({
         </button>
         <button
           onClick={() => setIsCustom(true)}
-          className={`px-5 py-2.5 rounded-xl font-medium text-sm transition-all duration-300 flex items-center gap-2 ${isCustom ? "bg-white text-black shadow-lg shadow-white/10" : "text-zinc-400 hover:text-white"}`}
+          className={`toggle-item flex items-center gap-2 ${isCustom ? "active" : ""}`}
         >
           <svg
             className="w-4 h-4"
@@ -74,8 +72,11 @@ export const StepSpirit: React.FC<StepSpiritProps> = ({
       </div>
 
       {!isCustom ? (
-        <div className="flex flex-col items-center justify-center text-center p-10 border border-zinc-800/50 rounded-3xl bg-gradient-to-b from-zinc-900/50 to-transparent backdrop-blur-sm">
-          <div className="w-20 h-20 rounded-full bg-purple-500/10 flex items-center justify-center mb-6 border border-purple-500/20">
+        <div className="card-elevated flex flex-col items-center justify-center text-center p-10">
+          <div
+            className="w-20 h-20 rounded-2xl bg-purple-500/20 flex items-center justify-center mb-6 border-2 border-purple-500/40"
+            style={{ boxShadow: "0 4px 0 0 rgba(124, 58, 237, 0.3)" }}
+          >
             <svg
               className="w-10 h-10 text-purple-400"
               fill="none"
@@ -90,10 +91,10 @@ export const StepSpirit: React.FC<StepSpiritProps> = ({
               />
             </svg>
           </div>
-          <h3 className="text-2xl font-bold text-white mb-3">
+          <h3 className="text-2xl font-extrabold text-white mb-3">
             Magic Mode Active
           </h3>
-          <p className="text-zinc-400 max-w-sm mx-auto leading-relaxed">
+          <p className="text-zinc-400 max-w-sm mx-auto leading-relaxed font-medium">
             We'll analyze your past streams to automatically match your
             community's humor, slang, and energy.
           </p>
@@ -248,16 +249,16 @@ export const StepSpirit: React.FC<StepSpiritProps> = ({
           </div>
 
           {/* Lore Box */}
-          <div className="bg-zinc-900/30 border border-zinc-800/50 rounded-2xl p-6 backdrop-blur-sm">
-            <div className="flex items-center gap-2 mb-3">
+          <div className="card-elevated">
+            <div className="flex items-center gap-2 mb-4">
               <svg
-                className="w-4 h-4 text-zinc-400"
+                className="w-5 h-5 text-zinc-400"
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >
                 <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
               </svg>
-              <label className="text-sm font-semibold text-white uppercase tracking-wider">
+              <label className="text-sm font-bold text-white uppercase tracking-wider">
                 Lore & Backstory
               </label>
             </div>
@@ -265,7 +266,7 @@ export const StepSpirit: React.FC<StepSpiritProps> = ({
               value={personality}
               onChange={(e) => setPersonality(e.target.value)}
               placeholder="What does the chat care about? (e.g. We hate pineapple on pizza, we love gym streams...)"
-              className="w-full bg-zinc-900/50 border border-zinc-800/50 rounded-xl px-4 py-3 text-white focus:border-purple-500 focus:outline-none min-h-[120px] resize-none placeholder:text-zinc-600 transition-colors"
+              className="textarea"
             />
           </div>
         </div>
