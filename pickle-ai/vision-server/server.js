@@ -23,7 +23,7 @@ if (!OVERSHOOT_API_KEY) {
 let latestResult = null;
 let visionActive = false;
 let vision = null;
-let RealtimeVision = null;
+let createRealtimeVision = null;
 
 // WebSocket clients for real-time streaming
 const wsClients = new Set();
@@ -48,18 +48,19 @@ await fastify.register(websocket);
 // Dynamically import overshoot SDK
 async function loadOvershootSDK() {
     try {
-        const overshoot = await import('overshoot');
-        // The SDK exports RealtimeVision as default or as a named export
-        RealtimeVision = overshoot.RealtimeVision || overshoot.default;
-
-        // Verify it's a constructor function
+        // Import from the correct @overshoot/sdk package
+        const { RealtimeVision } = await import('@overshoot/sdk');
+        
+        // Verify it's a function/class
         if (typeof RealtimeVision !== 'function') {
-            fastify.log.warn('RealtimeVision not found in overshoot module, vision features disabled');
-            RealtimeVision = null;
+            fastify.log.warn('RealtimeVision not found in @overshoot/sdk, vision features disabled');
+            createRealtimeVision = null;
+        } else {
+            createRealtimeVision = RealtimeVision;
         }
-        return !!RealtimeVision;
+        return !!createRealtimeVision;
     } catch (err) {
-        fastify.log.error({ err: err.message }, 'Failed to load overshoot SDK');
+        fastify.log.error({ err: err.message }, 'Failed to load @overshoot/sdk');
         return false;
     }
 }
@@ -68,7 +69,7 @@ async function loadOvershootSDK() {
  * Initialize Overshoot RealtimeVision
  */
 async function initVision() {
-    if (!RealtimeVision) {
+    if (!createRealtimeVision) {
         throw new Error('Overshoot SDK not loaded');
     }
 
@@ -80,7 +81,8 @@ async function initVision() {
         }
     }
 
-    vision = new RealtimeVision({
+    // Use the RealtimeVision class constructor
+    vision = new createRealtimeVision({
         apiUrl: 'https://api.overshoot.ai',
         apiKey: OVERSHOOT_API_KEY,
         prompt: currentPrompt,
@@ -141,7 +143,7 @@ fastify.get('/health', async () => {
     return {
         status: 'ok',
         visionActive,
-        sdkLoaded: !!RealtimeVision,
+        sdkLoaded: !!createRealtimeVision,
         hasLatestResult: latestResult !== null,
         timestamp: new Date().toISOString(),
     };
@@ -165,7 +167,7 @@ fastify.get('/vision/latest', async () => {
  * POST /vision/start - Start vision processing
  */
 fastify.post('/vision/start', async (request, reply) => {
-    if (!RealtimeVision) {
+    if (!createRealtimeVision) {
         return reply.code(503).send({
             ok: false,
             error: 'Overshoot SDK not available',
@@ -247,7 +249,7 @@ fastify.post('/vision/prompt', async (request, reply) => {
 fastify.get('/vision/status', async () => {
     return {
         active: visionActive,
-        sdkLoaded: !!RealtimeVision,
+        sdkLoaded: !!createRealtimeVision,
         streamId: vision?.getStreamId?.() || null,
         currentPrompt: currentPrompt.substring(0, 100) + '...',
         lastResultAt: latestResult?.timestamp || null,
@@ -267,7 +269,7 @@ fastify.get('/vision/ws', { websocket: true }, (socket, req) => {
     socket.send(JSON.stringify({
         type: 'connected',
         visionActive,
-        sdkLoaded: !!RealtimeVision,
+        sdkLoaded: !!createRealtimeVision,
         hasLatestResult: latestResult !== null,
     }));
 
@@ -280,7 +282,7 @@ fastify.get('/vision/ws', { websocket: true }, (socket, req) => {
         try {
             const data = JSON.parse(message.toString());
 
-            if (data.command === 'start' && RealtimeVision) {
+            if (data.command === 'start' && createRealtimeVision) {
                 try {
                     await initVision();
                     await vision.start();

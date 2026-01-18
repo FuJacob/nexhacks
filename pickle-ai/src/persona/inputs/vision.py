@@ -69,7 +69,7 @@ class VisionInputProcessor(InputProcessor):
         """Start vision processing on the sidecar."""
         try:
             session = await self._ensure_session()
-            async with session.post(f"{self.server_url}/vision/start") as resp:
+            async with session.post(f"{self.server_url}/vision/start", json={}) as resp:
                 if resp.status == 200:
                     data = await resp.json()
                     logger.info("vision_started", response=data)
@@ -84,7 +84,7 @@ class VisionInputProcessor(InputProcessor):
         """Stop vision processing on the sidecar."""
         try:
             session = await self._ensure_session()
-            async with session.post(f"{self.server_url}/vision/stop") as resp:
+            async with session.post(f"{self.server_url}/vision/stop", json={}) as resp:
                 if resp.status == 200:
                     logger.info("vision_stopped")
         except Exception as e:

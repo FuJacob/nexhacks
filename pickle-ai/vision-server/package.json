@@ -9,11 +9,11 @@
     "dev": "node --watch server.js"
   },
   "dependencies": {
-    "fastify": "^4.26.0",
     "@fastify/cors": "^9.0.0",
     "@fastify/websocket": "^10.0.0",
-    "overshoot": "^1.0.1",
+    "@overshoot/sdk": "^0.1.0-alpha.2",
     "dotenv": "^16.4.0",
+    "fastify": "^4.26.0",
     "pino-pretty": "^11.0.0"
   },
   "engines": {
