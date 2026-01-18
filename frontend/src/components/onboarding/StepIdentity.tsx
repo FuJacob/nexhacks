@@ -68,10 +68,7 @@ export const StepIdentity: React.FC<StepIdentityProps> = ({
           className="modal-overlay"
           onClick={() => setShowAvatarPicker(false)}
         >
-          <div
-            className="modal-content"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2 className="modal-title">Choose Avatar</h2>
               <button
@@ -107,9 +104,7 @@ export const StepIdentity: React.FC<StepIdentityProps> = ({
       )}
 
       <div className="text-center mb-8">
-        <h1 className="heading-xl mb-4">
-          The Identity
-        </h1>
+        <h1 className="heading-xl mb-4">The Identity</h1>
         <p className="text-zinc-400 text-base md:text-lg font-medium">
           Give your chat a face and a voice.
         </p>
@@ -184,14 +179,21 @@ export const StepIdentity: React.FC<StepIdentityProps> = ({
                   {/* Play Button */}
                   <button
                     className={`mt-3 w-9 h-9 rounded-xl flex items-center justify-center border-2 transition-all duration-150 ${isSelected ? "bg-white text-black border-zinc-300" : "border-zinc-700 text-zinc-500 hover:border-zinc-500 hover:text-zinc-300"}`}
-                    style={{ boxShadow: isSelected ? "0 3px 0 0 #a1a1aa" : "0 3px 0 0 #3f3f46" }}
+                    style={{
+                      boxShadow: isSelected
+                        ? "0 3px 0 0 #a1a1aa"
+                        : "0 3px 0 0 #3f3f46",
+                    }}
                   >
                     <span className="text-xs font-bold">▶</span>
                   </button>
 
                   {/* Selected indicator */}
                   {isSelected && (
-                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-lg flex items-center justify-center text-xs font-bold border-2 border-black" style={{ boxShadow: "0 2px 0 0 #16a34a" }}>
+                    <div
+                      className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-lg flex items-center justify-center text-xs font-bold border-2 border-black"
+                      style={{ boxShadow: "0 2px 0 0 #16a34a" }}
+                    >
                       ✓
                     </div>
                   )}

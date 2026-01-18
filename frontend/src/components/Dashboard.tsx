@@ -64,7 +64,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
           />
           <div className="flex flex-col">
             <h1 className="text-xl font-black">{personaName}</h1>
-            <p className="text-xs text-zinc-500 font-bold uppercase tracking-wider">AI Assistant</p>
+            <p className="text-xs text-zinc-500 font-bold uppercase tracking-wider">
+              AI Assistant
+            </p>
           </div>
         </div>
 
@@ -156,7 +158,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <p className="text-xl font-black text-white">{messageCount}</p>
               </div>
             </div>
-            <p className="text-sm text-zinc-400 font-medium">Total messages processed</p>
+            <p className="text-sm text-zinc-400 font-medium">
+              Total messages processed
+            </p>
           </div>
 
           {/* Uptime Card */}
@@ -184,7 +188,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </p>
               </div>
             </div>
-            <p className="text-sm text-zinc-400 font-medium">Time since activation</p>
+            <p className="text-sm text-zinc-400 font-medium">
+              Time since activation
+            </p>
           </div>
         </div>
 
@@ -202,7 +208,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
               <h2 className="text-2xl font-black gradient-text">
                 {personaName}
               </h2>
-              <p className="text-zinc-400 font-medium">Your AI Chat Assistant</p>
+              <p className="text-zinc-400 font-medium">
+                Your AI Chat Assistant
+              </p>
             </div>
           </div>
 
@@ -246,10 +254,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               </div>
               <div className="flex flex-wrap gap-2">
                 {persona.behavior.trigger_words.map((word) => (
-                  <span
-                    key={word}
-                    className="badge badge-primary"
-                  >
+                  <span key={word} className="badge badge-primary">
                     {word}
                   </span>
                 ))}

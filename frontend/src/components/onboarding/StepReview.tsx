@@ -29,14 +29,10 @@ export const StepReview: React.FC<StepReviewProps> = ({
   return (
     <div className="flex flex-col w-full animate-enter items-center justify-center">
       <div className="text-center mb-10">
-        <h1 className="heading-xl mb-4">
-          You're all set.
-        </h1>
+        <h1 className="heading-xl mb-4">You're all set.</h1>
         <p className="text-zinc-400 text-lg md:text-xl font-medium">
-          <span className="gradient-text font-bold">
-            {name}
-          </span>{" "}
-          is ready to join the stream.
+          <span className="gradient-text font-bold">{name}</span> is ready to
+          join the stream.
         </p>
       </div>
 
@@ -71,9 +67,7 @@ export const StepReview: React.FC<StepReviewProps> = ({
                 className="w-10 h-10 rounded-xl flex-shrink-0 object-cover border-2 border-purple-500/30"
               />
               <div>
-                <span className="font-bold gradient-text">
-                  {name}
-                </span>
+                <span className="font-bold gradient-text">{name}</span>
                 <p className="text-white mt-1.5 leading-relaxed font-sans font-medium">
                   Okay, strictly speaking, that dog is actually the main
                   character of this stream now.

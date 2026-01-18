@@ -55,9 +55,7 @@ export const StepRhythm: React.FC<StepRhythmProps> = ({
   return (
     <div className="flex flex-col w-full h-full animate-enter overflow-y-auto">
       <div className="text-center mb-8">
-        <h1 className="heading-xl mb-4">
-          The Rhythm
-        </h1>
+        <h1 className="heading-xl mb-4">The Rhythm</h1>
         <p className="text-zinc-400 text-base md:text-lg font-medium">
           Find the right tempo. How often do they jump in?
         </p>

@@ -23,9 +23,7 @@ export const StepSpirit: React.FC<StepSpiritProps> = ({
   return (
     <div className="flex flex-col w-full animate-enter">
       <div className="text-center mb-8">
-        <h1 className="heading-xl mb-4">
-          The Spirit
-        </h1>
+        <h1 className="heading-xl mb-4">The Spirit</h1>
         <p className="text-zinc-400 text-lg font-medium">
           Define the vibe. How should they behave?
         </p>
@@ -75,7 +73,10 @@ export const StepSpirit: React.FC<StepSpiritProps> = ({
 
       {!isCustom ? (
         <div className="card-elevated flex flex-col items-center justify-center text-center p-10">
-          <div className="w-20 h-20 rounded-2xl bg-purple-500/20 flex items-center justify-center mb-6 border-2 border-purple-500/40" style={{ boxShadow: "0 4px 0 0 rgba(124, 58, 237, 0.3)" }}>
+          <div
+            className="w-20 h-20 rounded-2xl bg-purple-500/20 flex items-center justify-center mb-6 border-2 border-purple-500/40"
+            style={{ boxShadow: "0 4px 0 0 rgba(124, 58, 237, 0.3)" }}
+          >
             <svg
               className="w-10 h-10 text-purple-400"
               fill="none"

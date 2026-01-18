@@ -186,10 +186,7 @@ function App() {
             <p className="text-zinc-400 text-sm leading-relaxed">{error}</p>
           </div>
 
-          <button
-            onClick={loadData}
-            className="btn-primary mt-4"
-          >
+          <button onClick={loadData} className="btn-primary mt-4">
             Try Again
           </button>
 
@@ -229,11 +226,7 @@ function App() {
             <div
               key={s}
               className={`progress-dot ${
-                step === s
-                  ? "active"
-                  : step > s
-                    ? "completed"
-                    : "pending"
+                step === s ? "active" : step > s ? "completed" : "pending"
               }`}
             />
           ))}
