@@ -15,6 +15,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [isLive, setIsLive] = useState(true);
   const [messageCount, setMessageCount] = useState(0);
   const [uptime, setUptime] = useState(0);
+  
+  const avatarUrl = persona.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${personaName || "default"}`;
 
   // Simulate uptime counter
   useEffect(() => {
@@ -54,9 +56,9 @@ export const Dashboard: React.FC<DashboardProps> = ({
       <header className="fixed top-0 left-0 w-full p-6 md:p-8 flex justify-between items-center z-50 backdrop-blur-sm">
         <div className="flex items-center gap-3">
           <img
-            src="/logo.png"
+            src={avatarUrl}
             alt="Pickle"
-            className="h-8 w-8 opacity-70 hover:opacity-100 transition-opacity"
+            className="h-8 w-8 opacity-70 hover:opacity-100 transition-opacity rounded-full object-cover"
           />
           <div className="flex flex-col">
             <h1 className="text-xl font-bold">{personaName}</h1>
@@ -193,7 +195,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
             <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-purple-500 via-pink-500 to-blue-500 p-[3px] shadow-xl shadow-purple-500/20">
               <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden">
                 <img
-                  src="/logo.png"
+                  src={avatarUrl}
                   className="w-full h-full object-cover opacity-80"
                   alt="Avatar"
                 />

@@ -19,6 +19,7 @@ export interface PersonaSettings {
   style: string[];
   emotions: string[];
   behavior: BehaviorSettings;
+  avatar?: string;
 }
 
 export interface VoiceSettings {

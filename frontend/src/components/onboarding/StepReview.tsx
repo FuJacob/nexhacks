@@ -15,6 +15,8 @@ export const StepReview: React.FC<StepReviewProps> = ({
   isSaving,
 }) => {
   const [showMessage, setShowMessage] = useState(false);
+  
+  const avatarUrl = persona.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${name || "default"}`;
 
   // Simple animation for the mock chat
   useEffect(() => {
@@ -61,7 +63,11 @@ export const StepReview: React.FC<StepReviewProps> = ({
             className={`transition-all duration-700 transform ${showMessage ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}
           >
             <div className="flex items-start gap-3 mt-3 bg-gradient-to-r from-purple-500/10 to-blue-500/10 p-4 rounded-xl border border-purple-500/20">
-              <div className="w-9 h-9 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex-shrink-0 shadow-lg shadow-purple-500/30"></div>
+              <img
+                src={avatarUrl}
+                alt={name}
+                className="w-9 h-9 rounded-full flex-shrink-0 shadow-lg shadow-purple-500/30 object-cover"
+              />
               <div>
                 <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400">
                   {name}

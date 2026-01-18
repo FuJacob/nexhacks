@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import type { Voice } from "../../types";
 
 interface StepIdentityProps {
@@ -7,6 +7,8 @@ interface StepIdentityProps {
   selectedVoice: string;
   setSelectedVoice: (id: string) => void;
   voices: Voice[];
+  avatar?: string;
+  setAvatar: (avatar: string) => void;
 }
 
 // Curated top 4 voices as requested
@@ -33,9 +35,71 @@ export const StepIdentity: React.FC<StepIdentityProps> = ({
   selectedVoice,
   setSelectedVoice,
   voices,
+  avatar,
+  setAvatar,
 }) => {
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  
+  // Predefined avatar options
+  const avatarOptions = [
+    "https://api.dicebear.com/7.x/bottts/svg?seed=Felix",
+    "https://api.dicebear.com/7.x/bottts/svg?seed=Aneka",
+    "https://api.dicebear.com/7.x/bottts/svg?seed=Bubbles",
+    "https://api.dicebear.com/7.x/bottts/svg?seed=Midnight",
+    "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
+    "https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka",
+    "https://api.dicebear.com/7.x/adventurer/svg?seed=Felix",
+    "https://api.dicebear.com/7.x/adventurer/svg?seed=Aneka",
+    "https://api.dicebear.com/7.x/fun-emoji/svg?seed=Felix",
+    "https://api.dicebear.com/7.x/fun-emoji/svg?seed=Aneka",
+    "https://api.dicebear.com/7.x/pixel-art/svg?seed=Felix",
+    "https://api.dicebear.com/7.x/pixel-art/svg?seed=Aneka",
+  ];
+
+  const currentAvatar = avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${name || "default"}`;
+  
   return (
     <div className="flex flex-col w-full h-full animate-enter overflow-y-auto">
+      {/* Avatar Picker Modal */}
+      {showAvatarPicker && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowAvatarPicker(false)}>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">Choose Avatar</h2>
+              <button
+                onClick={() => setShowAvatarPicker(false)}
+                className="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-4">
+              {avatarOptions.map((avatarUrl, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => {
+                    setAvatar(avatarUrl);
+                    setShowAvatarPicker(false);
+                  }}
+                  className={`aspect-square rounded-xl overflow-hidden border-2 transition-all hover:scale-105 ${
+                    currentAvatar === avatarUrl
+                      ? "border-purple-500 shadow-lg shadow-purple-500/20"
+                      : "border-zinc-700 hover:border-zinc-500"
+                  }`}
+                >
+                  <img
+                    src={avatarUrl}
+                    alt={`Avatar ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="text-center mb-8">
         <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight bg-gradient-to-r from-white via-white to-zinc-400 bg-clip-text text-transparent">
           The Identity
@@ -47,17 +111,13 @@ export const StepIdentity: React.FC<StepIdentityProps> = ({
 
       <div className="flex flex-col items-center justify-start gap-8 flex-1 pb-8">
         {/* Avatar Ring */}
-        <div className="relative group cursor-pointer flex-shrink-0">
+        <div className="relative group cursor-pointer flex-shrink-0" onClick={() => setShowAvatarPicker(true)}>
           <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-gradient-to-tr from-purple-500 via-pink-500 to-blue-500 p-[3px] animate-pulse-slow shadow-xl shadow-purple-500/20">
             <div className="w-full h-full rounded-full bg-black flex items-center justify-center overflow-hidden relative">
               <img
-                src="/logo.png"
+                src={currentAvatar}
                 className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300"
                 alt="Avatar"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src =
-                    "https://api.dicebear.com/7.x/bottts/svg?seed=" + name;
-                }}
               />
               <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
                 <span className="text-xs font-semibold uppercase tracking-wider">

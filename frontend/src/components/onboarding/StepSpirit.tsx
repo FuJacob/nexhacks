@@ -12,8 +12,6 @@ interface StepSpiritProps {
 export const StepSpirit: React.FC<StepSpiritProps> = ({
   personality,
   setPersonality,
-  style,
-  setStyle,
   isCustom,
   setIsCustom,
 }) => {

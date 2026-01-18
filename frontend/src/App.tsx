@@ -21,6 +21,7 @@ const DEFAULT_PERSONA: PersonaSettings = {
     chat_batch_size: 10,
     trigger_words: [],
   },
+  avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=default",
 };
 
 function App() {
@@ -29,7 +30,7 @@ function App() {
   const totalSteps = 4;
 
   // Data State
-  const [settings, setSettings] = useState<PickleSettings | null>(null);
+  const [, setSettings] = useState<PickleSettings | null>(null);
   const [voices, setVoices] = useState<Voice[]>([]);
   const [selectedVoice, setSelectedVoice] = useState<string>("");
   const [persona, setPersona] = useState<PersonaSettings>(DEFAULT_PERSONA);
@@ -248,6 +249,8 @@ function App() {
             selectedVoice={selectedVoice}
             setSelectedVoice={setSelectedVoice}
             voices={voices}
+            avatar={persona.avatar}
+            setAvatar={(a) => setPersona({ ...persona, avatar: a })}
           />
         )}
 
