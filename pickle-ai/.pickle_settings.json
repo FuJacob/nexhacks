@@ -1,6 +1,6 @@
 {
   "voice": {
-    "voice_model": "aura-luna-en"
+    "voice_model": "aura-orion-en"
   },
   "persona": {
     "name": "Pixel",
@@ -21,6 +21,7 @@
       "laughing"
     ],
     "behavior": {
+<<<<<<< Updated upstream
       "spontaneous_rate": 0.7,
       "cooldown": 3.6000000000000014,
       "chat_batch_size": 3,
@@ -29,6 +30,14 @@
         "hello pixel",
         "hey pixel",
         "pixel"
+=======
+      "spontaneous_rate": 0.54,
+      "cooldown": 9.899999999999999,
+      "chat_batch_size": 6,
+      "trigger_words": [
+        "diggly",
+        "niggly"
+>>>>>>> Stashed changes
       ]
     }
   }
