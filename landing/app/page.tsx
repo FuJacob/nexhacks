@@ -1,585 +1,699 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
+import { useState, useEffect, useRef } from "react";
+import {
+  Download,
+  Zap,
+  Eye,
+  MessageSquare,
+  Mic,
+  Brain,
+  Shield,
+  Sparkles,
+  ChevronDown,
+  ExternalLink,
+  Github,
+  Twitter,
+} from "lucide-react";
+import {
+  Navbar,
+  NavBody,
+  MobileNav,
+  MobileNavHeader,
+  MobileNavMenu,
+  MobileNavToggle,
+  NavItems,
+  NavbarButton,
+} from "@/components/ui/resizable-navbar";
 
-import { useState, useEffect, useRef } from "react"
-import SmartSimpleBrilliant from "../components/smart-simple-brilliant"
-import YourWorkInSync from "../components/your-work-in-sync"
-import EffortlessIntegration from "../components/effortless-integration-updated"
-import NumbersThatSpeak from "../components/numbers-that-speak"
-import DocumentationSection from "../components/documentation-section"
-import TestimonialsSection from "../components/testimonials-section"
-import FAQSection from "../components/faq-section"
-import PricingSection from "../components/pricing-section"
-import CTASection from "../components/cta-section"
-import FooterSection from "../components/footer-section"
-
-// Reusable Badge Component
-function Badge({ icon, text }: { icon: React.ReactNode; text: string }) {
-  return (
-    <div className="px-[14px] py-[6px] bg-white shadow-[0px_0px_0px_4px_rgba(55,50,47,0.05)] overflow-hidden rounded-[90px] flex justify-start items-center gap-[8px] border border-[rgba(2,6,23,0.08)] shadow-xs">
-      <div className="w-[14px] h-[14px] relative overflow-hidden flex items-center justify-center">{icon}</div>
-      <div className="text-center flex justify-center flex-col text-[#37322F] text-xs font-medium leading-3 font-sans">
-        {text}
-      </div>
-    </div>
-  )
-}
-
-export default function LandingPage() {
-  const [activeCard, setActiveCard] = useState(0)
-  const [progress, setProgress] = useState(0)
-  const mountedRef = useRef(true)
-
-  useEffect(() => {
-    const progressInterval = setInterval(() => {
-      if (!mountedRef.current) return
-
-      setProgress((prev) => {
-        if (prev >= 100) {
-          if (mountedRef.current) {
-            setActiveCard((current) => (current + 1) % 3)
-          }
-          return 0
-        }
-        return prev + 2 // 2% every 100ms = 5 seconds total
-      })
-    }, 100)
-
-    return () => {
-      clearInterval(progressInterval)
-      mountedRef.current = false
-    }
-  }, [])
+// Intro Animation Overlay
+function IntroAnimation({ onComplete }: { onComplete: () => void }) {
+  const [phase, setPhase] = useState(0);
 
   useEffect(() => {
-    return () => {
-      mountedRef.current = false
-    }
-  }, [])
+    const timers = [
+      setTimeout(() => setPhase(1), 100),
+      setTimeout(() => setPhase(2), 1400),
+      setTimeout(() => setPhase(3), 2200),
+      setTimeout(() => {
+        setPhase(4);
+        setTimeout(onComplete, 500);
+      }, 3000),
+    ];
 
-  const handleCardClick = (index: number) => {
-    if (!mountedRef.current) return
-    setActiveCard(index)
-    setProgress(0)
-  }
-
-  const getDashboardContent = () => {
-    switch (activeCard) {
-      case 0:
-        return <div className="text-[#828387] text-sm">Customer Subscription Status and Details</div>
-      case 1:
-        return <div className="text-[#828387] text-sm">Analytics Dashboard - Real-time Insights</div>
-      case 2:
-        return <div className="text-[#828387] text-sm">Data Visualization - Charts and Metrics</div>
-      default:
-        return <div className="text-[#828387] text-sm">Customer Subscription Status and Details</div>
-    }
-  }
+    return () => timers.forEach(clearTimeout);
+  }, [onComplete]);
 
   return (
-    <div className="w-full min-h-screen relative bg-[#F7F5F3] overflow-x-hidden flex flex-col justify-start items-center">
-      <div className="relative flex flex-col justify-start items-center w-full">
-        {/* Main container with proper margins */}
-        <div className="w-full max-w-none px-4 sm:px-6 md:px-8 lg:px-0 lg:max-w-[1060px] lg:w-[1060px] relative flex flex-col justify-start items-start min-h-screen">
-          {/* Left vertical line */}
-          <div className="w-[1px] h-full absolute left-4 sm:left-6 md:left-8 lg:left-0 top-0 bg-[rgba(55,50,47,0.12)] shadow-[1px_0px_0px_white] z-0"></div>
+    <div
+      className={`fixed inset-0 z-50 flex flex-col items-center justify-center bg-black transition-opacity duration-500 ${
+        phase >= 4 ? "opacity-0 pointer-events-none" : "opacity-100"
+      }`}
+    >
+      {/* Ripple effects */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        {phase >= 1 && (
+          <>
+            <div
+              className="absolute w-32 h-32 rounded-full border border-[#4a7c59]/30 animate-ripple-out"
+              style={{ animationDelay: "0s" }}
+            />
+            <div
+              className="absolute w-32 h-32 rounded-full border border-[#4a7c59]/20 animate-ripple-out"
+              style={{ animationDelay: "0.3s" }}
+            />
+            <div
+              className="absolute w-32 h-32 rounded-full border border-[#4a7c59]/10 animate-ripple-out"
+              style={{ animationDelay: "0.6s" }}
+            />
+          </>
+        )}
+      </div>
 
-          {/* Right vertical line */}
-          <div className="w-[1px] h-full absolute right-4 sm:right-6 md:right-8 lg:right-0 top-0 bg-[rgba(55,50,47,0.12)] shadow-[1px_0px_0px_white] z-0"></div>
+      {/* Glow background */}
+      <div
+        className={`absolute w-[600px] h-[600px] rounded-full transition-all duration-1000 ${
+          phase >= 1 ? "opacity-100 scale-100" : "opacity-0 scale-50"
+        }`}
+        style={{
+          background:
+            "radial-gradient(circle, rgba(74, 124, 89, 0.15) 0%, transparent 70%)",
+        }}
+      />
 
-          <div className="self-stretch pt-[9px] overflow-hidden border-b border-[rgba(55,50,47,0.06)] flex flex-col justify-center items-center gap-4 sm:gap-6 md:gap-8 lg:gap-[66px] relative z-10">
-            {/* Navigation */}
-            <div className="w-full h-12 sm:h-14 md:h-16 lg:h-[84px] absolute left-0 top-0 flex justify-center items-center z-20 px-6 sm:px-8 md:px-12 lg:px-0">
-              <div className="w-full h-0 absolute left-0 top-6 sm:top-7 md:top-8 lg:top-[42px] border-t border-[rgba(55,50,47,0.12)] shadow-[0px_1px_0px_white]"></div>
+      {/* Pickle Logo */}
+      <div className={`relative z-10 ${phase >= 1 ? "" : "opacity-0"}`}>
+        <img
+          src="/logo.png"
+          alt="Pickle"
+          className={`w-32 h-32 md:w-40 md:h-40 rounded-xl ${phase >= 1 ? "animate-pickle-reveal animate-pickle-glow" : ""}`}
+        />
+      </div>
 
-              <div className="w-full max-w-[calc(100%-32px)] sm:max-w-[calc(100%-48px)] md:max-w-[calc(100%-64px)] lg:max-w-[700px] lg:w-[700px] h-10 sm:h-11 md:h-12 py-1.5 sm:py-2 px-3 sm:px-4 md:px-4 pr-2 sm:pr-3 bg-[#F7F5F3] backdrop-blur-sm shadow-[0px_0px_0px_2px_white] overflow-hidden rounded-[50px] flex justify-between items-center relative z-30">
-                <div className="flex justify-center items-center">
-                  <div className="flex justify-start items-center">
-                    <div className="flex flex-col justify-center text-[#2F3037] text-sm sm:text-base md:text-lg lg:text-xl font-medium leading-5 font-sans">
-                      Brillance
-                    </div>
-                  </div>
-                  <div className="pl-3 sm:pl-4 md:pl-5 lg:pl-5 flex justify-start items-start hidden sm:flex flex-row gap-2 sm:gap-3 md:gap-4 lg:gap-4">
-                    <div className="flex justify-start items-center">
-                      <div className="flex flex-col justify-center text-[rgba(49,45,43,0.80)] text-xs md:text-[13px] font-medium leading-[14px] font-sans">
-                        Products
-                      </div>
-                    </div>
-                    <div className="flex justify-start items-center">
-                      <div className="flex flex-col justify-center text-[rgba(49,45,43,0.80)] text-xs md:text-[13px] font-medium leading-[14px] font-sans">
-                        Pricing
-                      </div>
-                    </div>
-                    <div className="flex justify-start items-center">
-                      <div className="flex flex-col justify-center text-[rgba(49,45,43,0.80)] text-xs md:text-[13px] font-medium leading-[14px] font-sans">
-                        Docs
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="h-6 sm:h-7 md:h-8 flex justify-start items-start gap-2 sm:gap-3">
-                  <div className="px-2 sm:px-3 md:px-[14px] py-1 sm:py-[6px] bg-white shadow-[0px_1px_2px_rgba(55,50,47,0.12)] overflow-hidden rounded-full flex justify-center items-center">
-                    <div className="flex flex-col justify-center text-[#37322F] text-xs md:text-[13px] font-medium leading-5 font-sans">
-                      Log in
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Hero Section */}
-            <div className="pt-16 sm:pt-20 md:pt-24 lg:pt-[216px] pb-8 sm:pb-12 md:pb-16 flex flex-col justify-start items-center px-2 sm:px-4 md:px-8 lg:px-0 w-full sm:pl-0 sm:pr-0 pl-0 pr-0">
-              <div className="w-full max-w-[937px] lg:w-[937px] flex flex-col justify-center items-center gap-3 sm:gap-4 md:gap-5 lg:gap-6">
-                <div className="self-stretch rounded-[3px] flex flex-col justify-center items-center gap-4 sm:gap-5 md:gap-6 lg:gap-8">
-                  <div className="w-full max-w-[748.71px] lg:w-[748.71px] text-center flex justify-center flex-col text-[#37322F] text-[24px] xs:text-[28px] sm:text-[36px] md:text-[52px] lg:text-[80px] font-normal leading-[1.1] sm:leading-[1.15] md:leading-[1.2] lg:leading-24 font-serif px-2 sm:px-4 md:px-0">
-                    Effortless custom contract
-                    <br />
-                    billing by Brillance
-                  </div>
-                  <div className="w-full max-w-[506.08px] lg:w-[506.08px] text-center flex justify-center flex-col text-[rgba(55,50,47,0.80)] sm:text-lg md:text-xl leading-[1.4] sm:leading-[1.45] md:leading-[1.5] lg:leading-7 font-sans px-2 sm:px-4 md:px-0 lg:text-lg font-medium text-sm">
-                    Streamline your billing process with seamless automation
-                    <br className="hidden sm:block" />
-                    for every custom contract, tailored by Brillance.
-                  </div>
-                </div>
-              </div>
-
-              <div className="w-full max-w-[497px] lg:w-[497px] flex flex-col justify-center items-center gap-6 sm:gap-8 md:gap-10 lg:gap-12 relative z-10 mt-6 sm:mt-8 md:mt-10 lg:mt-12">
-                <div className="backdrop-blur-[8.25px] flex justify-start items-center gap-4">
-                  <div className="h-10 sm:h-11 md:h-12 px-6 sm:px-8 md:px-10 lg:px-12 py-2 sm:py-[6px] relative bg-[#37322F] shadow-[0px_0px_0px_2.5px_rgba(255,255,255,0.08)_inset] overflow-hidden rounded-full flex justify-center items-center">
-                    <div className="w-20 sm:w-24 md:w-28 lg:w-44 h-[41px] absolute left-0 top-[-0.5px] bg-gradient-to-b from-[rgba(255,255,255,0)] to-[rgba(0,0,0,0.10)] mix-blend-multiply"></div>
-                    <div className="flex flex-col justify-center text-white text-sm sm:text-base md:text-[15px] font-medium leading-5 font-sans">
-                      Start for free
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="absolute top-[232px] sm:top-[248px] md:top-[264px] lg:top-[320px] left-1/2 transform -translate-x-1/2 z-0 pointer-events-none">
-                <img
-                  src="/mask-group-pattern.svg"
-                  alt=""
-                  className="w-[936px] sm:w-[1404px] md:w-[2106px] lg:w-[2808px] h-auto opacity-30 sm:opacity-40 md:opacity-50 mix-blend-multiply"
-                  style={{
-                    filter: "hue-rotate(15deg) saturate(0.7) brightness(1.2)",
-                  }}
-                />
-              </div>
-
-              <div className="w-full max-w-[960px] lg:w-[960px] pt-2 sm:pt-4 pb-6 sm:pb-8 md:pb-10 px-2 sm:px-4 md:px-6 lg:px-11 flex flex-col justify-center items-center gap-2 relative z-5 my-8 sm:my-12 md:my-16 lg:my-16 mb-0 lg:pb-0">
-                <div className="w-full max-w-[960px] lg:w-[960px] h-[200px] sm:h-[280px] md:h-[450px] lg:h-[695.55px] bg-white shadow-[0px_0px_0px_0.9056603908538818px_rgba(0,0,0,0.08)] overflow-hidden rounded-[6px] sm:rounded-[8px] lg:rounded-[9.06px] flex flex-col justify-start items-start">
-                  {/* Dashboard Content */}
-                  <div className="self-stretch flex-1 flex justify-start items-start">
-                    {/* Main Content */}
-                    <div className="w-full h-full flex items-center justify-center">
-                      <div className="relative w-full h-full overflow-hidden">
-                        {/* Product Image 1 - Plan your schedules */}
-                        <div
-                          className={`absolute inset-0 transition-all duration-500 ease-in-out ${
-                            activeCard === 0 ? "opacity-100 scale-100 blur-0" : "opacity-0 scale-95 blur-sm"
-                          }`}
-                        >
-                          <img
-                            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/dsadsadsa.jpg-xTHS4hGwCWp2H5bTj8np6DXZUyrxX7.jpeg"
-                            alt="Schedules Dashboard - Customer Subscription Management"
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-
-                        {/* Product Image 2 - Data to insights */}
-                        <div
-                          className={`absolute inset-0 transition-all duration-500 ease-in-out ${
-                            activeCard === 1 ? "opacity-100 scale-100 blur-0" : "opacity-0 scale-95 blur-sm"
-                          }`}
-                        >
-                          <img
-                            src="/analytics-dashboard-with-charts-graphs-and-data-vi.jpg"
-                            alt="Analytics Dashboard"
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-
-                        {/* Product Image 3 - Data visualization */}
-                        <div
-                          className={`absolute inset-0 transition-all duration-500 ease-in-out ${
-                            activeCard === 2 ? "opacity-100 scale-100 blur-0" : "opacity-0 scale-95 blur-sm"
-                          }`}
-                        >
-                          <img
-                            src="/data-visualization-dashboard-with-interactive-char.jpg"
-                            alt="Data Visualization Dashboard"
-                            className="w-full h-full object-contain" // Changed from object-cover to object-contain to preserve landscape aspect ratio
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="self-stretch border-t border-[#E0DEDB] border-b border-[#E0DEDB] flex justify-center items-start">
-                <div className="w-4 sm:w-6 md:w-8 lg:w-12 self-stretch relative overflow-hidden">
-                  {/* Left decorative pattern */}
-                  <div className="w-[120px] sm:w-[140px] md:w-[162px] left-[-40px] sm:left-[-50px] md:left-[-58px] top-[-120px] absolute flex flex-col justify-start items-start">
-                    {Array.from({ length: 50 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="self-stretch h-3 sm:h-4 rotate-[-45deg] origin-top-left outline outline-[0.5px] outline-[rgba(3,7,18,0.08)] outline-offset-[-0.25px]"
-                      ></div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex-1 px-0 sm:px-2 md:px-0 flex flex-col md:flex-row justify-center items-stretch gap-0">
-                  {/* Feature Cards */}
-                  <FeatureCard
-                    title="Plan your schedules"
-                    description="Streamline customer subscriptions and billing with automated scheduling tools."
-                    isActive={activeCard === 0}
-                    progress={activeCard === 0 ? progress : 0}
-                    onClick={() => handleCardClick(0)}
-                  />
-                  <FeatureCard
-                    title="Analytics & insights"
-                    description="Transform your business data into actionable insights with real-time analytics."
-                    isActive={activeCard === 1}
-                    progress={activeCard === 1 ? progress : 0}
-                    onClick={() => handleCardClick(1)}
-                  />
-                  <FeatureCard
-                    title="Collaborate seamlessly"
-                    description="Keep your team aligned with shared dashboards and collaborative workflows."
-                    isActive={activeCard === 2}
-                    progress={activeCard === 2 ? progress : 0}
-                    onClick={() => handleCardClick(2)}
-                  />
-                </div>
-
-                <div className="w-4 sm:w-6 md:w-8 lg:w-12 self-stretch relative overflow-hidden">
-                  {/* Right decorative pattern */}
-                  <div className="w-[120px] sm:w-[140px] md:w-[162px] left-[-40px] sm:left-[-50px] md:left-[-58px] top-[-120px] absolute flex flex-col justify-start items-start">
-                    {Array.from({ length: 50 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className="self-stretch h-3 sm:h-4 rotate-[-45deg] origin-top-left outline outline-[0.5px] outline-[rgba(3,7,18,0.08)] outline-offset-[-0.25px]"
-                      ></div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Social Proof Section */}
-              <div className="w-full border-b border-[rgba(55,50,47,0.12)] flex flex-col justify-center items-center">
-                <div className="self-stretch px-4 sm:px-6 md:px-24 py-8 sm:py-12 md:py-16 border-b border-[rgba(55,50,47,0.12)] flex justify-center items-center gap-6">
-                  <div className="w-full max-w-[586px] px-4 sm:px-6 py-4 sm:py-5 shadow-[0px_2px_4px_rgba(50,45,43,0.06)] overflow-hidden rounded-lg flex flex-col justify-start items-center gap-3 sm:gap-4 shadow-none">
-                    <Badge
-                      icon={
-                        <svg width="12" height="10" viewBox="0 0 12 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <rect x="1" y="3" width="4" height="6" stroke="#37322F" strokeWidth="1" fill="none" />
-                          <rect x="7" y="1" width="4" height="8" stroke="#37322F" strokeWidth="1" fill="none" />
-                          <rect x="2" y="4" width="1" height="1" fill="#37322F" />
-                          <rect x="3.5" y="4" width="1" height="1" fill="#37322F" />
-                          <rect x="2" y="5.5" width="1" height="1" fill="#37322F" />
-                          <rect x="3.5" y="5.5" width="1" height="1" fill="#37322F" />
-                          <rect x="8" y="2" width="1" height="1" fill="#37322F" />
-                          <rect x="9.5" y="2" width="1" height="1" fill="#37322F" />
-                          <rect x="8" y="3.5" width="1" height="1" fill="#37322F" />
-                          <rect x="9.5" y="3.5" width="1" height="1" fill="#37322F" />
-                          <rect x="8" y="5" width="1" height="1" fill="#37322F" />
-                          <rect x="9.5" y="5" width="1" height="1" fill="#37322F" />
-                        </svg>
-                      }
-                      text="Social Proof"
-                    />
-                    <div className="w-full max-w-[472.55px] text-center flex justify-center flex-col text-[#49423D] text-xl sm:text-2xl md:text-3xl lg:text-5xl font-semibold leading-tight md:leading-[60px] font-sans tracking-tight">
-                      Confidence backed by results
-                    </div>
-                    <div className="self-stretch text-center text-[#605A57] text-sm sm:text-base font-normal leading-6 sm:leading-7 font-sans">
-                      Our customers achieve more each day
-                      <br className="hidden sm:block" />
-                      because their tools are simple, powerful, and clear.
-                    </div>
-                  </div>
-                </div>
-
-                {/* Logo Grid */}
-                <div className="self-stretch border-[rgba(55,50,47,0.12)] flex justify-center items-start border-t border-b-0">
-                  <div className="w-4 sm:w-6 md:w-8 lg:w-12 self-stretch relative overflow-hidden">
-                    {/* Left decorative pattern */}
-                    <div className="w-[120px] sm:w-[140px] md:w-[162px] left-[-40px] sm:left-[-50px] md:left-[-58px] top-[-120px] absolute flex flex-col justify-start items-start">
-                      {Array.from({ length: 50 }).map((_, i) => (
-                        <div
-                          key={i}
-                          className="self-stretch h-3 sm:h-4 rotate-[-45deg] origin-top-left outline outline-[0.5px] outline-[rgba(3,7,18,0.08)] outline-offset-[-0.25px]"
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 gap-0 border-l border-r border-[rgba(55,50,47,0.12)]">
-                    {/* Logo Grid - Responsive grid */}
-                    {Array.from({ length: 8 }).map((_, index) => {
-                      const isMobileFirstColumn = index % 2 === 0
-                      const isMobileLastColumn = index % 2 === 1
-                      const isDesktopFirstColumn = index % 4 === 0
-                      const isDesktopLastColumn = index % 4 === 3
-                      const isMobileBottomRow = index >= 6
-                      const isDesktopTopRow = index < 4
-                      const isDesktopBottomRow = index >= 4
-
-                      return (
-                        <div
-                          key={index}
-                          className={`
-                            h-24 xs:h-28 sm:h-32 md:h-36 lg:h-40 flex justify-center items-center gap-1 xs:gap-2 sm:gap-3
-                            border-b border-[rgba(227,226,225,0.5)]
-                            ${index < 6 ? "sm:border-b-[0.5px]" : "sm:border-b"}
-                            ${index >= 6 ? "border-b" : ""}
-                            ${isMobileFirstColumn ? "border-r-[0.5px]" : ""}
-                            sm:border-r-[0.5px] sm:border-l-0
-                            ${isDesktopFirstColumn ? "md:border-l" : "md:border-l-[0.5px]"}
-                            ${isDesktopLastColumn ? "md:border-r" : "md:border-r-[0.5px]"}
-                            ${isDesktopTopRow ? "md:border-b-[0.5px]" : ""}
-                            ${isDesktopBottomRow ? "md:border-t-[0.5px] md:border-b" : ""}
-                            border-[#E3E2E1]
-                          `}
-                        >
-                          <div className="w-6 h-6 xs:w-7 xs:h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 relative shadow-[0px_-4px_8px_rgba(255,255,255,0.64)_inset] overflow-hidden rounded-full">
-                            <img src="/horizon-icon.svg" alt="Horizon" className="w-full h-full object-contain" />
-                          </div>
-                          <div className="text-center flex justify-center flex-col text-[#37322F] text-sm xs:text-base sm:text-lg md:text-xl lg:text-2xl font-medium leading-tight md:leading-9 font-sans">
-                            Acute
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-
-                  <div className="w-4 sm:w-6 md:w-8 lg:w-12 self-stretch relative overflow-hidden">
-                    {/* Right decorative pattern */}
-                    <div className="w-[120px] sm:w-[140px] md:w-[162px] left-[-40px] sm:left-[-50px] md:left-[-58px] top-[-120px] absolute flex flex-col justify-start items-start">
-                      {Array.from({ length: 50 }).map((_, i) => (
-                        <div
-                          key={i}
-                          className="self-stretch h-3 sm:h-4 rotate-[-45deg] origin-top-left outline outline-[0.5px] outline-[rgba(3,7,18,0.08)] outline-offset-[-0.25px]"
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Bento Grid Section */}
-              <div className="w-full border-b border-[rgba(55,50,47,0.12)] flex flex-col justify-center items-center">
-                {/* Header Section */}
-                <div className="self-stretch px-4 sm:px-6 md:px-8 lg:px-0 lg:max-w-[1060px] lg:w-[1060px] py-8 sm:py-12 md:py-16 border-b border-[rgba(55,50,47,0.12)] flex justify-center items-center gap-6">
-                  <div className="w-full max-w-[616px] lg:w-[616px] px-4 sm:px-6 py-4 sm:py-5 shadow-[0px_2px_4px_rgba(50,45,43,0.06)] overflow-hidden rounded-lg flex flex-col justify-start items-center gap-3 sm:gap-4 shadow-none">
-                    <Badge
-                      icon={
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <rect x="1" y="1" width="4" height="4" stroke="#37322F" strokeWidth="1" fill="none" />
-                          <rect x="7" y="1" width="4" height="4" stroke="#37322F" strokeWidth="1" fill="none" />
-                          <rect x="1" y="7" width="4" height="4" stroke="#37322F" strokeWidth="1" fill="none" />
-                          <rect x="7" y="7" width="4" height="4" stroke="#37322F" strokeWidth="1" fill="none" />
-                        </svg>
-                      }
-                      text="Bento grid"
-                    />
-                    <div className="w-full max-w-[598.06px] lg:w-[598.06px] text-center flex justify-center flex-col text-[#49423D] text-xl sm:text-2xl md:text-3xl lg:text-5xl font-semibold leading-tight md:leading-[60px] font-sans tracking-tight">
-                      Built for absolute clarity and focused work
-                    </div>
-                    <div className="self-stretch text-center text-[#605A57] text-sm sm:text-base font-normal leading-6 sm:leading-7 font-sans">
-                      Stay focused with tools that organize, connect
-                      <br />
-                      and turn information into confident decisions.
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bento Grid Content */}
-                <div className="self-stretch flex justify-center items-start">
-                  <div className="w-4 sm:w-6 md:w-8 lg:w-12 self-stretch relative overflow-hidden">
-                    {/* Left decorative pattern */}
-                    <div className="w-[120px] sm:w-[140px] md:w-[162px] left-[-40px] sm:left-[-50px] md:left-[-58px] top-[-120px] absolute flex flex-col justify-start items-start">
-                      {Array.from({ length: 200 }).map((_, i) => (
-                        <div
-                          key={i}
-                          className="self-stretch h-3 sm:h-4 rotate-[-45deg] origin-top-left outline outline-[0.5px] outline-[rgba(3,7,18,0.08)] outline-offset-[-0.25px]"
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-0 border-l border-r border-[rgba(55,50,47,0.12)]">
-                    {/* Top Left - Smart. Simple. Brilliant. */}
-                    <div className="border-b border-r-0 md:border-r border-[rgba(55,50,47,0.12)] p-4 sm:p-6 md:p-8 lg:p-12 flex flex-col justify-start items-start gap-4 sm:gap-6">
-                      <div className="flex flex-col gap-2">
-                        <h3 className="text-[#37322F] text-lg sm:text-xl font-semibold leading-tight font-sans">
-                          Smart. Simple. Brilliant.
-                        </h3>
-                        <p className="text-[#605A57] text-sm md:text-base font-normal leading-relaxed font-sans">
-                          Your data is beautifully organized so you see everything clearly without the clutter.
-                        </p>
-                      </div>
-                      <div className="w-full h-[200px] sm:h-[250px] md:h-[300px] rounded-lg flex items-center justify-center overflow-hidden">
-                        <SmartSimpleBrilliant
-                          width="100%"
-                          height="100%"
-                          theme="light"
-                          className="scale-50 sm:scale-65 md:scale-75 lg:scale-90"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Top Right - Your work, in sync */}
-                    <div className="border-b border-[rgba(55,50,47,0.12)] p-4 sm:p-6 md:p-8 lg:p-12 flex flex-col justify-start items-start gap-4 sm:gap-6">
-                      <div className="flex flex-col gap-2">
-                        <h3 className="text-[#37322F] font-semibold leading-tight font-sans text-lg sm:text-xl">
-                          Your work, in sync
-                        </h3>
-                        <p className="text-[#605A57] text-sm md:text-base font-normal leading-relaxed font-sans">
-                          Every update flows instantly across your team and keeps collaboration effortless and fast.
-                        </p>
-                      </div>
-                      <div className="w-full h-[200px] sm:h-[250px] md:h-[300px] rounded-lg flex overflow-hidden text-right items-center justify-center">
-                        <YourWorkInSync
-                          width="400"
-                          height="250"
-                          theme="light"
-                          className="scale-60 sm:scale-75 md:scale-90"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Bottom Left - Effortless integration */}
-                    <div className="border-r-0 md:border-r border-[rgba(55,50,47,0.12)] p-4 sm:p-6 md:p-8 lg:p-12 flex flex-col justify-start items-start gap-4 sm:gap-6 bg-transparent">
-                      <div className="flex flex-col gap-2">
-                        <h3 className="text-[#37322F] text-lg sm:text-xl font-semibold leading-tight font-sans">
-                          Effortless integration
-                        </h3>
-                        <p className="text-[#605A57] text-sm md:text-base font-normal leading-relaxed font-sans">
-                          All your favorite tools connect in one place and work together seamlessly by design.
-                        </p>
-                      </div>
-                      <div className="w-full h-[200px] sm:h-[250px] md:h-[300px] rounded-lg flex overflow-hidden justify-center items-center relative bg-transparent">
-                        <div className="w-full h-full flex items-center justify-center bg-transparent">
-                          <EffortlessIntegration width={400} height={250} className="max-w-full max-h-full" />
-                        </div>
-                        {/* Gradient mask for soft bottom edge */}
-                        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#F7F5F3] to-transparent pointer-events-none"></div>
-                      </div>
-                    </div>
-
-                    {/* Bottom Right - Numbers that speak */}
-                    <div className="p-4 sm:p-6 md:p-8 lg:p-12 flex flex-col justify-start items-start gap-4 sm:gap-6">
-                      <div className="flex flex-col gap-2">
-                        <h3 className="text-[#37322F] text-lg sm:text-xl font-semibold leading-tight font-sans">
-                          Numbers that speak
-                        </h3>
-                        <p className="text-[#605A57] text-sm md:text-base font-normal leading-relaxed font-sans">
-                          Track growth with precision and turn raw data into confident decisions you can trust.
-                        </p>
-                      </div>
-                      <div className="w-full h-[200px] sm:h-[250px] md:h-[300px] rounded-lg flex overflow-hidden items-center justify-center relative">
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <NumbersThatSpeak
-                            width="100%"
-                            height="100%"
-                            theme="light"
-                            className="w-full h-full object-contain"
-                          />
-                        </div>
-                        {/* Gradient mask for soft bottom edge */}
-                        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#F7F5F3] to-transparent pointer-events-none"></div>
-                        {/* Fallback content if component doesn't render */}
-                        <div className="absolute inset-0 flex items-center justify-center opacity-20 hidden">
-                          <div className="flex flex-col items-center gap-2 p-4">
-                            <div className="w-3/4 h-full bg-green-500 rounded-full"></div>
-                          </div>
-                          <div className="text-sm text-green-600">Growth Rate</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="w-4 sm:w-6 md:w-8 lg:w-12 self-stretch relative overflow-hidden">
-                    {/* Right decorative pattern */}
-                    <div className="w-[120px] sm:w-[140px] md:w-[162px] left-[-40px] sm:left-[-50px] md:left-[-58px] top-[-120px] absolute flex flex-col justify-start items-start">
-                      {Array.from({ length: 200 }).map((_, i) => (
-                        <div
-                          key={i}
-                          className="self-stretch h-3 sm:h-4 rotate-[-45deg] origin-top-left outline outline-[0.5px] outline-[rgba(3,7,18,0.08)] outline-offset-[-0.25px]"
-                        />
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Documentation Section */}
-              <DocumentationSection />
-
-              {/* Testimonials Section */}
-              <TestimonialsSection />
-
-              {/* Pricing Section */}
-              <PricingSection />
-
-              {/* FAQ Section */}
-              <FAQSection />
-
-              {/* CTA Section */}
-              <CTASection />
-
-              {/* Footer Section */}
-              <FooterSection />
-            </div>
-          </div>
-        </div>
+      {/* Text */}
+      <div className="relative z-10 mt-8 text-center">
+        <h1
+          className={`text-4xl md:text-6xl font-bold text-white transition-all duration-700 ${
+            phase >= 2 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+          }`}
+          style={{ filter: phase >= 2 ? "blur(0)" : "blur(10px)" }}
+        >
+          Pickle
+        </h1>
+        <p
+          className={`mt-3 text-zinc-400 text-lg md:text-xl transition-all duration-700 ${
+            phase >= 3 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+          }`}
+          style={{
+            filter: phase >= 3 ? "blur(0)" : "blur(10px)",
+            transitionDelay: "0.2s",
+          }}
+        >
+          Your AI Streaming Companion
+        </p>
       </div>
     </div>
-  )
+  );
 }
 
-// FeatureCard component definition inline to fix import error
+// Feature Card Component
 function FeatureCard({
+  icon: Icon,
   title,
   description,
-  isActive,
-  progress,
-  onClick,
+  delay = 0,
 }: {
-  title: string
-  description: string
-  isActive: boolean
-  progress: number
-  onClick: () => void
+  icon: React.ElementType;
+  title: string;
+  description: string;
+  delay?: number;
 }) {
   return (
     <div
-      className={`w-full md:flex-1 self-stretch px-6 py-5 overflow-hidden flex flex-col justify-start items-start gap-2 cursor-pointer relative border-b md:border-b-0 last:border-b-0 ${
-        isActive
-          ? "bg-white shadow-[0px_0px_0px_0.75px_#E0DEDB_inset]"
-          : "border-l-0 border-r-0 md:border border-[#E0DEDB]/80"
-      }`}
-      onClick={onClick}
+      className="feature-card group p-6 md:p-8 rounded-2xl bg-zinc-900/50 border border-zinc-800 hover:bg-zinc-900/80"
+      style={{ animationDelay: `${delay}ms` }}
     >
-      {isActive && (
-        <div className="absolute top-0 left-0 w-full h-0.5 bg-[rgba(50,45,43,0.08)]">
-          <div
-            className="h-full bg-[#322D2B] transition-all duration-100 ease-linear"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-      )}
-
-      <div className="self-stretch flex justify-center flex-col text-[#49423D] text-sm md:text-sm font-semibold leading-6 md:leading-6 font-sans">
-        {title}
+      <div className="w-12 h-12 rounded-xl bg-[#4a7c59]/20 border border-[#4a7c59]/30 flex items-center justify-center mb-5 group-hover:bg-[#4a7c59]/30 transition-colors">
+        <Icon className="w-6 h-6 text-[#5a9c6d]" />
       </div>
-      <div className="self-stretch text-[#605A57] text-[13px] md:text-[13px] font-normal leading-[22px] md:leading-[22px] font-sans">
-        {description}
+      <h3 className="text-xl font-semibold text-white mb-3">{title}</h3>
+      <p className="text-zinc-400 leading-relaxed">{description}</p>
+    </div>
+  );
+}
+
+// FAQ Item Component
+function FAQItem({ question, answer }: { question: string; answer: string }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="border-b border-zinc-800 last:border-0">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full py-6 flex items-center justify-between text-left group"
+      >
+        <span className="text-lg font-medium text-white group-hover:text-[#5a9c6d] transition-colors">
+          {question}
+        </span>
+        <ChevronDown
+          className={`w-5 h-5 text-zinc-400 transition-transform duration-300 ${
+            isOpen ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+      <div
+        className={`overflow-hidden transition-all duration-300 ${
+          isOpen ? "max-h-96 pb-6" : "max-h-0"
+        }`}
+      >
+        <p className="text-zinc-400 leading-relaxed">{answer}</p>
       </div>
     </div>
-  )
+  );
+}
+
+export default function LandingPage() {
+  const [showIntro, setShowIntro] = useState(true);
+  const [contentVisible, setContentVisible] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const mainRef = useRef<HTMLDivElement>(null);
+
+  const handleIntroComplete = () => {
+    setShowIntro(false);
+    setTimeout(() => setContentVisible(true), 100);
+  };
+
+  const features = [
+    {
+      icon: MessageSquare,
+      title: "Intelligent Chat",
+      description:
+        "Powered by Google Gemini, Pickle understands context and responds naturally to your Twitch chat in real-time.",
+    },
+    {
+      icon: Eye,
+      title: "Real-Time Vision",
+      description:
+        "See what you see. Pickle uses Overshoot AI to analyze your camera feed and react to what's happening around you.",
+    },
+    {
+      icon: Mic,
+      title: "Dynamic TTS",
+      description:
+        "High-quality text-to-speech brings Pickle to life with natural, expressive voice responses during your streams.",
+    },
+    {
+      icon: Brain,
+      title: "Long-Term Memory",
+      description:
+        "ChromaDB-powered memory means Pickle remembers past conversations, creating deeper, more meaningful interactions.",
+    },
+    {
+      icon: Sparkles,
+      title: "Custom Personas",
+      description:
+        "Define your AI's personality, style, and behavior through simple YAML configuration files.",
+    },
+    {
+      icon: Shield,
+      title: "Privacy First",
+      description:
+        "All processing happens locally. Your stream data never leaves your machine without your explicit consent.",
+    },
+  ];
+
+  const faqs = [
+    {
+      question: "What is Pickle AI?",
+      answer:
+        "Pickle is an AI companion designed specifically for IRL Twitch streamers. It integrates with your chat, can see through your camera, and responds with its own voice and personality—making your streams more interactive and engaging.",
+    },
+    {
+      question: "What do I need to run Pickle?",
+      answer:
+        "You'll need a Mac with macOS 12 or later, Node.js 18+, Python 3.11+, and API keys for Google Gemini and Twitch. Optional: Overshoot API key for vision features.",
+    },
+    {
+      question: "Is Pickle free to use?",
+      answer:
+        "Pickle itself is free and open source. However, you'll need API keys for third-party services like Google Gemini (for AI responses) which may have their own pricing.",
+    },
+    {
+      question: "Can I customize Pickle's personality?",
+      answer:
+        "Absolutely! Pickle uses YAML configuration files to define personality traits, speaking style, emotions, and behavior patterns. You have full control over how your AI companion acts.",
+    },
+    {
+      question: "Does Pickle work with OBS?",
+      answer:
+        "Yes! Pickle includes a built-in overlay system that integrates seamlessly with OBS and other streaming software via browser sources.",
+    },
+  ];
+
+  return (
+    <>
+      {showIntro && <IntroAnimation onComplete={handleIntroComplete} />}
+
+      <div
+        ref={mainRef}
+        className={`min-h-screen bg-black text-white transition-opacity duration-700 ${
+          contentVisible ? "opacity-100" : "opacity-0"
+        }`}
+      >
+        {/* Grid pattern background */}
+        <div className="fixed inset-0 grid-pattern opacity-50 pointer-events-none" />
+
+        {/* Gradient glow */}
+        <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] gradient-pickle-radial pointer-events-none" />
+
+        {/* Navigation */}
+        <Navbar className="top-0">
+          {/* Desktop Navigation */}
+          <NavBody>
+            <a href="#" className="flex items-center gap-3">
+              <img
+                src="/logo.png"
+                alt="Pickle"
+                className="w-10 h-10 rounded-xl"
+              />
+              <span className="text-xl font-bold text-white">Pickle</span>
+            </a>
+            <NavItems
+              items={[
+                { name: "Features", link: "#features" },
+                { name: "FAQ", link: "#faq" },
+                {
+                  name: "GitHub",
+                  link: "https://github.com/yourusername/pickle-ai",
+                },
+              ]}
+            />
+            <NavbarButton href="#download" variant="dark">
+              Download
+            </NavbarButton>
+          </NavBody>
+
+          {/* Mobile Navigation */}
+          <MobileNav>
+            <MobileNavHeader>
+              <a href="#" className="flex items-center gap-3">
+                <img
+                  src="/logo.png"
+                  alt="Pickle"
+                  className="w-8 h-8 rounded-xl"
+                />
+                <span className="text-lg font-bold text-white">Pickle</span>
+              </a>
+              <MobileNavToggle
+                isOpen={mobileMenuOpen}
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              />
+            </MobileNavHeader>
+            <MobileNavMenu
+              isOpen={mobileMenuOpen}
+              onClose={() => setMobileMenuOpen(false)}
+            >
+              <a
+                href="#features"
+                className="text-neutral-600 dark:text-neutral-300 hover:text-black dark:hover:text-white"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Features
+              </a>
+              <a
+                href="#faq"
+                className="text-neutral-600 dark:text-neutral-300 hover:text-black dark:hover:text-white"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                FAQ
+              </a>
+              <a
+                href="https://github.com/yourusername/pickle-ai"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-neutral-600 dark:text-neutral-300 hover:text-black dark:hover:text-white"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                GitHub
+              </a>
+              <NavbarButton href="#download" variant="dark" className="w-full">
+                Download
+              </NavbarButton>
+            </MobileNavMenu>
+          </MobileNav>
+        </Navbar>
+
+        {/* Hero Section */}
+        <section className="relative pt-32 md:pt-44 pb-20 md:pb-32 px-6">
+          <div className="max-w-4xl mx-auto text-center">
+            {/* Badge */}
+            <div
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full glass-pickle mb-8 ${
+                contentVisible ? "animate-fade-in-down" : "opacity-0"
+              }`}
+              style={{ animationDelay: "0.1s" }}
+            >
+              <Zap className="w-4 h-4 text-[#5a9c6d]" />
+              <span className="text-sm text-[#5a9c6d] font-medium">
+                Now available for macOS
+              </span>
+            </div>
+
+            {/* Headline */}
+            <h1
+              className={`text-4xl sm:text-5xl md:text-7xl font-bold text-white leading-tight mb-6 ${
+                contentVisible ? "animate-fade-in-up" : "opacity-0"
+              }`}
+              style={{ animationDelay: "0.2s" }}
+            >
+              Your AI Streaming
+              <br />
+              <span className="text-gradient-pickle">Companion</span>
+            </h1>
+
+            {/* Subheadline */}
+            <p
+              className={`text-lg md:text-xl text-zinc-400 max-w-2xl mx-auto mb-10 leading-relaxed ${
+                contentVisible ? "animate-fade-in-up" : "opacity-0"
+              }`}
+              style={{ animationDelay: "0.3s" }}
+            >
+              Intelligent chat interaction, real-time vision, and dynamic
+              personality— Pickle brings your IRL Twitch streams to life with
+              AI-powered engagement.
+            </p>
+
+            {/* CTA Buttons */}
+            <div
+              className={`flex flex-col sm:flex-row items-center justify-center gap-4 ${
+                contentVisible ? "animate-fade-in-up" : "opacity-0"
+              }`}
+              style={{ animationDelay: "0.4s" }}
+            >
+              <a
+                href="#download"
+                className="group inline-flex items-center gap-3 px-8 py-4 rounded-full bg-white text-black font-semibold text-lg hover:bg-zinc-200 transition-all hover:scale-105 shadow-lg shadow-white/10"
+              >
+                <Download className="w-5 h-5" />
+                Download for Mac
+                <span className="text-sm text-zinc-500 font-normal">
+                  (.dmg)
+                </span>
+              </a>
+              <a
+                href="https://github.com/yourusername/pickle-ai"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-6 py-4 rounded-full border border-zinc-700 text-zinc-300 font-medium hover:border-zinc-500 hover:text-white transition-all"
+              >
+                <Github className="w-5 h-5" />
+                View Source
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            </div>
+          </div>
+
+          {/* App Preview */}
+          <div
+            className={`max-w-5xl mx-auto mt-16 md:mt-24 ${
+              contentVisible ? "animate-scale-in" : "opacity-0"
+            }`}
+            style={{ animationDelay: "0.5s" }}
+          >
+            <div className="relative rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl shadow-black/50">
+              {/* Window controls */}
+              <div className="flex items-center gap-2 px-4 py-3 bg-zinc-900 border-b border-zinc-800">
+                <div className="w-3 h-3 rounded-full bg-red-500/80" />
+                <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
+                <div className="w-3 h-3 rounded-full bg-green-500/80" />
+                <span className="ml-4 text-sm text-zinc-500">
+                  Pickle AI — Settings
+                </span>
+              </div>
+              {/* Preview content */}
+              <div className="bg-black p-8 md:p-12">
+                <div className="flex items-center gap-4 mb-8">
+                  <img
+                    src="/logo.png"
+                    alt="Pickle"
+                    className="w-12 h-12 rounded-xl"
+                  />
+                  <div>
+                    <h2 className="text-2xl font-bold text-white">Pickle</h2>
+                    <p className="text-zinc-500 text-sm uppercase tracking-wider">
+                      AI Persona Settings
+                    </p>
+                  </div>
+                </div>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="p-6 rounded-xl bg-zinc-900 border border-zinc-800">
+                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                      <Mic className="w-5 h-5 text-zinc-400" />
+                      Voice Settings
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-black border border-zinc-700">
+                        <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center">
+                          👨
+                        </div>
+                        <div>
+                          <span className="text-white font-medium">Adam</span>
+                          <span className="text-xs text-zinc-500 block">
+                            male • american
+                          </span>
+                        </div>
+                        <span className="ml-auto text-white text-sm">✓</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-6 rounded-xl bg-zinc-900 border border-zinc-800">
+                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                      <Brain className="w-5 h-5 text-zinc-400" />
+                      Persona
+                    </h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-zinc-400">Name:</span>
+                        <span className="text-white font-mono">Pickle</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-zinc-400">Personality:</span>
+                        <span className="text-white font-mono">
+                          Witty & Playful
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Features Section */}
+        <section id="features" className="py-20 md:py-32 px-6 relative">
+          <div className="max-w-6xl mx-auto">
+            {/* Section header */}
+            <div className="text-center mb-16">
+              <span className="inline-block px-4 py-1.5 rounded-full glass text-sm text-zinc-400 mb-4">
+                Features
+              </span>
+              <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
+                Everything you need for
+                <br />
+                <span className="text-gradient-pickle">engaging streams</span>
+              </h2>
+              <p className="text-zinc-400 text-lg max-w-2xl mx-auto">
+                Pickle combines cutting-edge AI with a streamer-first approach
+                to create the ultimate interactive companion.
+              </p>
+            </div>
+
+            {/* Feature grid */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {features.map((feature, index) => (
+                <FeatureCard
+                  key={feature.title}
+                  {...feature}
+                  delay={index * 100}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* How it Works Section */}
+        <section className="py-20 md:py-32 px-6 relative border-t border-zinc-900">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-16">
+              <span className="inline-block px-4 py-1.5 rounded-full glass text-sm text-zinc-400 mb-4">
+                How it works
+              </span>
+              <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
+                Up and running in minutes
+              </h2>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-8">
+              {[
+                {
+                  step: "01",
+                  title: "Download & Install",
+                  description:
+                    "Grab the macOS DMG file and drag Pickle to your Applications folder.",
+                },
+                {
+                  step: "02",
+                  title: "Configure APIs",
+                  description:
+                    "Add your Twitch and Gemini API keys through the simple settings interface.",
+                },
+                {
+                  step: "03",
+                  title: "Go Live",
+                  description:
+                    "Start streaming and watch Pickle engage with your chat automatically.",
+                },
+              ].map((item, index) => (
+                <div key={item.step} className="relative">
+                  <div className="text-6xl font-bold text-zinc-400 mb-4">
+                    {item.step}
+                  </div>
+                  <h3 className="text-xl font-semibold text-white mb-2">
+                    {item.title}
+                  </h3>
+                  <p className="text-zinc-400">{item.description}</p>
+                  {index < 2 && (
+                    <div className="hidden md:block absolute top-8 -right-4 w-8 h-0.5 bg-gradient-to-r from-zinc-700 to-transparent" />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* FAQ Section */}
+        <section
+          id="faq"
+          className="py-20 md:py-32 px-6 relative border-t border-zinc-900"
+        >
+          <div className="max-w-3xl mx-auto">
+            <div className="text-center mb-16">
+              <span className="inline-block px-4 py-1.5 rounded-full glass text-sm text-zinc-400 mb-4">
+                FAQ
+              </span>
+              <h2 className="text-3xl md:text-5xl font-bold text-white">
+                Questions? Answers.
+              </h2>
+            </div>
+
+            <div className="glass rounded-2xl p-6 md:p-8">
+              {faqs.map((faq) => (
+                <FAQItem key={faq.question} {...faq} />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Download CTA Section */}
+        <section id="download" className="py-20 md:py-32 px-6 relative">
+          <div className="max-w-4xl mx-auto text-center">
+            {/* Glow effect */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-[500px] h-[500px] rounded-full gradient-pickle-radial opacity-50" />
+            </div>
+
+            <div className="relative z-10">
+              <img
+                src="/logo.png"
+                alt="Pickle"
+                className="w-24 h-24 rounded-xl mx-auto mb-8 animate-pickle-float animate-pickle-glow"
+              />
+              <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
+                Ready to meet your new
+                <br />
+                streaming companion?
+              </h2>
+              <p className="text-zinc-400 text-lg mb-10 max-w-xl mx-auto">
+                Download Pickle for free and transform your IRL streams with
+                AI-powered interactivity.
+              </p>
+
+              <a
+                href="/downloads/Pickle-AI.dmg"
+                className="inline-flex items-center gap-3 px-10 py-5 rounded-full bg-white text-black font-semibold text-lg hover:bg-zinc-200 transition-all hover:scale-105 shadow-lg shadow-white/10"
+              >
+                <Download className="w-6 h-6" />
+                Download for macOS
+              </a>
+
+              <p className="mt-6 text-sm text-zinc-500">
+                Requires macOS 12+ • Intel & Apple Silicon
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Footer */}
+        <footer className="border-t border-zinc-900 py-12 px-6">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex items-center gap-3">
+                <img
+                  src="/logo.png"
+                  alt="Pickle"
+                  className="w-8 h-8 rounded-xl"
+                />
+                <span className="text-lg font-semibold text-white">Pickle</span>
+              </div>
+
+              <div className="flex items-center gap-6 text-zinc-400">
+                <a
+                  href="#features"
+                  className="hover:text-white transition-colors"
+                >
+                  Features
+                </a>
+                <a href="#faq" className="hover:text-white transition-colors">
+                  FAQ
+                </a>
+                <a
+                  href="https://github.com/yourusername/pickle-ai"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-white transition-colors"
+                >
+                  GitHub
+                </a>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <a
+                  href="https://github.com/yourusername/pickle-ai"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full glass flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
+                >
+                  <Github className="w-5 h-5" />
+                </a>
+                <a
+                  href="https://twitter.com/pickle_ai"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full glass flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
+                >
+                  <Twitter className="w-5 h-5" />
+                </a>
+              </div>
+            </div>
+
+            <div className="mt-8 pt-8 border-t border-zinc-900 text-center text-sm text-zinc-500">
+              <p>© 2026 Pickle AI. Open source under MIT License.</p>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </>
+  );
 }
