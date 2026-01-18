@@ -102,6 +102,24 @@ class VisionInputProcessor(InputProcessor):
             logger.error("vision_poll_error", error=str(e))
         return None
 
+    async def force_capture(self, queue: asyncio.Queue[InputEvent]) -> None:
+        """
+        Force an immediate vision capture and push to queue.
+        Useful for chaining Chat -> Vision triggers.
+        """
+        try:
+            logger.info("forcing_vision_capture")
+            result = await self._poll_latest()
+            if result:
+                event = self._create_input_event(result)
+                if event:
+                    # Mark this as a forced event so logic downstream knows?
+                    # For now just pushing it is enough, logic relies on source="vision"
+                    await queue.put(event)
+                    logger.info("forced_vision_event_queued")
+        except Exception as e:
+            logger.error("forced_vision_capture_failed", error=str(e))
+
     def _create_input_event(self, result: dict[str, Any]) -> InputEvent | None:
         """Convert vision result to InputEvent."""
         if not result.get("ok"):

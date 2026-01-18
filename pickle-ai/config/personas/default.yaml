@@ -18,7 +18,7 @@ style:
 
 voice:
   provider: deepgram
-  voice_id: aura-asteria-en
+  voice_id: aura-2-amalthea-en
   speed: 1.0
 
 behavior:
@@ -26,7 +26,7 @@ behavior:
   vision_rate: 0.60
 
   # Probability of reacting to speech (Priority 3 - Lower frequency)
-  speech_rate: 0.20
+  speech_rate: 0.50
 
   # Minimum seconds between responses
   cooldown: 8.0

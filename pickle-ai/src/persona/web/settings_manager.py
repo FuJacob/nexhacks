@@ -13,26 +13,24 @@ logger = get_logger(__name__)
 
 # Available Deepgram Aura voices
 AVAILABLE_VOICES = [
-    {"id": "aura-asteria-en", "name": "Asteria", "gender": "female", "accent": "American"},
-    {"id": "aura-luna-en", "name": "Luna", "gender": "female", "accent": "American"},
-    {"id": "aura-athena-en", "name": "Athena", "gender": "female", "accent": "British"},
-    {"id": "aura-orion-en", "name": "Orion", "gender": "male", "accent": "American"},
-    {"id": "aura-angus-en", "name": "Angus", "gender": "male", "accent": "Irish"},
-    {"id": "aura-helios-en", "name": "Helios", "gender": "male", "accent": "British"},
+    {"id": "aura-2-amalthea-en", "name": "Amalthea", "gender": "female", "accent": "American"},
+    {"id": "aura-2-cordelia-en", "name": "Cordelia", "gender": "female", "accent": "American"},
+    {"id": "aura-2-delia-en", "name": "Delia", "gender": "female", "accent": "American"},
+    {"id": "aura-2-iris-en", "name": "Iris", "gender": "female", "accent": "American"},
 ]
 
 
 class VoiceSettings(BaseModel):
     """Voice configuration settings."""
     
-    voice_model: str = Field(default="aura-asteria-en", description="Deepgram voice model ID")
+    voice_model: str = Field(default="aura-2-amalthea-en", description="Deepgram voice model ID")
 
 
 class BehaviorSettings(BaseModel):
     """Behavior configuration settings."""
     
     vision_rate: float = Field(default=0.6, ge=0, le=1, description="Probability of reacting to vision (0-1)")
-    speech_rate: float = Field(default=0.2, ge=0, le=1, description="Probability of reacting to speech (0-1)")
+    speech_rate: float = Field(default=0.5, ge=0, le=1, description="Probability of reacting to speech (0-1)")
     cooldown: float = Field(default=3.0, ge=0, description="Minimum seconds between responses")
     chat_batch_size: int = Field(default=10, ge=1, description="Max chat messages to batch before processing")
     trigger_words: list[str] = Field(default_factory=lambda: ["pixel", "hey ai", "bot"], description="Keywords that trigger immediate response")
@@ -206,7 +204,8 @@ class SettingsManager:
                     "speed": 1.1
                 },
                 "behavior": {
-                    "spontaneous_rate": persona.behavior.spontaneous_rate,
+                    "vision_rate": persona.behavior.vision_rate,
+                    "speech_rate": persona.behavior.speech_rate,
                     "cooldown": persona.behavior.cooldown,
                     "chat_batch_size": persona.behavior.chat_batch_size,
                     "trigger_words": persona.behavior.trigger_words,

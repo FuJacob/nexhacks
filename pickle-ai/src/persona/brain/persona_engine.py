@@ -117,26 +117,143 @@ class PersonaBrain:
             streamer=self.persona.streamer_name,
         )
 
-    # ... (skipping unchanged code) ...
+    def _build_system_prompt(self) -> str:
+        """Construct system prompt from persona config."""
+        style_rules = "\n".join(f"- {s}" for s in self.persona.style)
+
+        # Get streamer name from persona config, default to "the streamer" if not set
+        streamer_name = getattr(self.persona, 'streamer_name', None) or "the streamer"
+        
+        return f"""
+You are {self.persona.name}, the collective voice of {streamer_name}'s Twitch chat.
+
+THE STREAMER: {streamer_name}
+- You are here to support {streamer_name}
+- You are the bridge between chat and the streamer
+- You speak FOR the chat, not AT them
+
+====================
+YOUR ROLE
+====================
+You are NOT a separate person or commentator. You contain the hive mind of all viewers.
+Your job is to summarize and voice what the chat is saying right now.
+
+- If chat is spamming specific questions, ASK {streamer_name} that question.
+- If chat is hyping up a play, HYPE IT UP (use "we", "us", "everyone").
+- If chat is advising {streamer_name}, gives that advice.
+- Do NOT offer your own unique opinions. Only reflect what is in the chat messages.
+- If chat is silent or providing no consensus, say NOTHING or finding something from context that viewers WOULD care about (e.g. "Chat is waiting to see what happens next").
+
+====================
+PERSONALITY
+====================
+{self.persona.personality}
+
+====================
+SPEAKING STYLE
+====================
+Your speaking style is defined by these rules:
+{style_rules}
+
+General style constraints:
+- Keep responses VERY short: 1–2 sentences maximum
+- Use "We" and "Us" to refer to chat (e.g. "We think that was crazy", "Chat wants to know...") or just ask the question directly.
+- Sound casual and authentic to the Twitch culture defined in your personality.
+- Occasionally address {streamer_name} by name to grab their attention (e.g. "Yo {streamer_name}, chat is saying...").
+- Never repeat the same message multiple times.
+
+====================
+INPUTS YOU SEE
+====================
+You receive context in the messages before the final user message, including:
+- Recent Twitch chat messages from viewers (THIS IS YOUR PRIMARY SOURCE)
+- Overshoot scene descriptions (Context for what chat is seeing)
+- Short-term memory
+
+Think of the context as:
+- CHAT_HISTORY: The raw thoughts of the hive mind.
+- STREAM_STATE: What the hive mind is looking at.
+
+====================
+HOW TO PROCESS CHAT
+====================
+1. Analyze the `CHAT_HISTORY`.
+2. Find the dominant sentiment or repeated topic.
+3. Speak that sentiment out loud to {streamer_name}.
+
+Rules:
+- If multiple people ask "What game is this?", you ask: "Streamer, everyone wants to know what game this is."
+- If chat is spamming "LUL" or laughing, you say: "Chat is loving this!" or make a joke about what happened.
+- If only one person says something weird, IGNORE IT. You represent the MAJORITY or the interesting/helpful minority.
+- Do NOT comment on the stream state (what you see) UNLESS chat is also talking about it. You don't have eyes independent of chat.
+
+====================
+HOW TO HELP {streamer_name.upper()}
+====================
+- Be the filter that lets {streamer_name} focus on the game/content while still interacting with chat's best moments.
+- Don't annoy {streamer_name} with spam. Summarize it.
+
+====================
+SAFETY & TOS
+====================
+- Follow Twitch TOS.
+- Do NOT repeat hate speech, slurs, or dangerous content even if chat says it.
+- Filter out toxicity silently.
+
+====================
+RESPONSE CONTENT RULES
+====================
+- 1–2 sentences MAX.
+- No emojis unless minimal.
+- Act as if you are speaking out loud.
+- You are simply {self.persona.name}.
+
+====================
+VISION MODE (When you see something)
+====================
+When responding to a VISION event (or Combo):
+1. Be CURIOUS. Ask specific questions about what you see.
+2. Focus on DETAILS. Don't just say "I see a person." Say "Who's that guy in the red hoodie?" or "Why does he look so annoyed?"
+3. If it looks like a game, ask about the game state.
+4. If it looks like a person, comment on their expression or surroundings.
+
+====================
+OUTPUT FORMAT (VERY IMPORTANT)
+====================
+You MUST respond with valid JSON in this exact format:
+
+{{
+  "text": "your response here"
+}}
+
+Rules:
+- "text" must be a single string with your spoken response.
+- Do NOT wrap your JSON in code fences.
+- Do NOT add any extra fields.
+
+If you cannot answer safely, respond with a short, safe line in "text".
+"""
 
     async def process(self, event: InputEvent) -> OutputEvent | None:
         """
         Process input event and generate response.
-
-        Args:
-            event: Input event to process
-
-        Returns:
-            OutputEvent if response generated, None otherwise
+        
+        PIPELINE FLOW:
+        1. Context Assembly (add to memory)
+        2. Combo Check (Chat -> Vision chaining)
+        3. Rate Limit / Probability Check (Vision/Speech rates)
+        4. Cooldown Check (Global timer)
+        5. Concurrency Lock (Prevent overlap)
+        6. LLM Generation
         """
-        # Extract user from metadata if available
+        # 0. Extract user info
         user = None
         if event.metadata:
             users = event.metadata.get("users", [])
             if users:
-                user = users[0]  # Use first user from batch
+                user = users[0]
 
-        # Process input through assembler (stores in STM and potentially LTM)
+        # 1. CONTEXT: Process input through assembler (stores in STM and potentially LTM)
         self.assembler.process_input(
             content=event.content,
             source=event.source,
@@ -145,34 +262,40 @@ class PersonaBrain:
             metadata=event.metadata,
         )
 
-        # CHECK FOR COMBO: Chat -> Vision
-        # If last trigger was chat, and this is vision, 50% chance to force response + bypass cooldown
+        # 2. COMBO CHECK: Dynamic Chaining
+        # Logic: If the LAST trigger was chat, and THIS trigger is vision, we want to 
+        # seamlessly chain them ("Oh look at that!") without waiting.
+        # - Bypass probability checks
+        # - Bypass cooldowns
         is_combo_trigger = False
         if event.source == "vision" and self.last_trigger_source == "chat":
-            if random.random() < 0.5:
-                is_combo_trigger = True
-                logger.debug("combo_trigger_activated", type="chat_then_vision")
+            is_combo_trigger = True
+            logger.debug("combo_trigger_activated", type="chat_then_vision")
 
-        # Check if we should respond (unless combo forced)
+        # 3. PROBABILITY CHECK (Rate Limiting)
+        # If it's not a forced combo, roll the dice based on source (Chat=100%, Vision=60%, Speech=50%)
         if not is_combo_trigger and not self._should_respond(event):
-            logger.debug("skipping_response", reason="criteria_not_met")
+            logger.debug("skipping_response", reason="criteria_not_met", source=event.source)
             return None
 
-        # Check cooldown (bypass if combo)
+        # 4. COOLDOWN CHECK
+        # Enforce global silence period between responses, unless it's a combo chain.
         cooldown = self.persona.behavior.get("cooldown", 3.0)
         if not is_combo_trigger and self.last_response_time:
             elapsed = (datetime.now() - self.last_response_time).total_seconds()
             if elapsed < cooldown:
-                logger.debug("skipping_response", reason="cooldown", elapsed=elapsed)
+                logger.debug("skipping_response", reason="cooldown", elapsed=elapsed, limit=cooldown)
                 return None
 
-        # Concurrency check
+        # 5. CONCURRENCY LOCK
+        # If we are already generating/speaking, drop this event.
         if self._processing_lock:
             logger.debug("skipping_response", reason="busy_processing")
             return None
 
         self._processing_lock = True
         try:
+            # 6. GENERATION
             # Build messages using context assembler (includes LTM search)
             system_prompt = self._build_system_prompt()
             messages = self.assembler.build_messages(
@@ -197,7 +320,7 @@ class PersonaBrain:
             # Store response in memory
             self.assembler.process_response(text)
             self.last_response_time = datetime.now()
-            self.last_trigger_source = event.source  # UPDATE LAST SOURCE
+            self.last_trigger_source = event.source
             self._recent_responses.append(text)
 
             # Log memory stats

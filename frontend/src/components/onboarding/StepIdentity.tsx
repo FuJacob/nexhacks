@@ -16,19 +16,29 @@ interface StepIdentityProps {
 // Curated top 4 voices as requested
 const DISPLAY_VOICES = [
   {
-    id: "e59f481c-0e24-42f4-9457-45dfeb9dd96d",
-    label: "Asteria",
+    id: "aura-2-amalthea-en",
+    label: "Amalthea",
     role: "The Bestie",
     icon: "👩",
   },
   {
-    id: "ebf39446-513b-4820-8356-d7d8e63bc2e3",
-    label: "Orion",
-    role: "The Hype Man",
-    icon: "👨",
+    id: "aura-2-cordelia-en",
+    label: "Cordelia",
+    role: "The Storyteller",
+    icon: "👩",
   },
-  { id: "1234", label: "Athena", role: "The Moderator", icon: "👩" }, // Fallback IDs if not present, need to handle gracefully
-  { id: "5678", label: "Helios", role: "The Narrator", icon: "👨" },
+  {
+    id: "aura-2-delia-en",
+    label: "Delia",
+    role: "The Interviewer",
+    icon: "👩",
+  },
+  {
+    id: "aura-2-iris-en",
+    label: "Iris",
+    role: "The Optimist",
+    icon: "👩",
+  },
 ];
 
 export const StepIdentity: React.FC<StepIdentityProps> = ({
@@ -151,19 +161,7 @@ export const StepIdentity: React.FC<StepIdentityProps> = ({
           </div>
         </div>
 
-        {/* AI Name Input */}
-        <div className="w-full max-w-sm px-4 flex-shrink-0">
-          <label className="text-sm text-zinc-500 text-center mb-2 font-bold uppercase tracking-wider block">
-            AI Co-Host Name
-          </label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Name your AI (e.g. Pickle, Glitch)"
-            className="input-underline"
-          />
-        </div>
+
 
         {/* Voice Cards */}
         <div className="w-full px-4 md:px-6 flex-shrink-0">
@@ -196,18 +194,6 @@ export const StepIdentity: React.FC<StepIdentityProps> = ({
                   <p className="text-xs text-zinc-500 uppercase tracking-wider font-bold mt-1 text-center">
                     {curated.role}
                   </p>
-
-                  {/* Play Button */}
-                  <button
-                    className={`mt-3 w-9 h-9 rounded-xl flex items-center justify-center border-2 transition-all duration-150 ${isSelected ? "bg-white text-black border-zinc-300" : "border-zinc-700 text-zinc-500 hover:border-zinc-500 hover:text-zinc-300"}`}
-                    style={{
-                      boxShadow: isSelected
-                        ? "0 3px 0 0 #a1a1aa"
-                        : "0 3px 0 0 #3f3f46",
-                    }}
-                  >
-                    <span className="text-xs font-bold">▶</span>
-                  </button>
 
                   {/* Selected indicator */}
                   {isSelected && (

@@ -145,6 +145,17 @@ class Orchestrator:
                     response = await self.brain.process(event)
                     if response:
                         await self.output_queue.put(response)
+                        
+                        # AUTOMATIC VISION TRIGGER
+                        # If we just responded to chat, immediately look at the screen!
+                        if event.source == "chat":
+                            # Find vision processor
+                            for inp in self.inputs:
+                                if hasattr(inp, "force_capture"):
+                                    logger.info("triggering_post_chat_vision")
+                                    # Run in background so we don't block
+                                    asyncio.create_task(inp.force_capture(self.input_queue))
+                                    break
 
             except asyncio.CancelledError:
                 break

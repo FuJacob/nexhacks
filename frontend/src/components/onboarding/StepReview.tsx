@@ -70,7 +70,7 @@ export const StepReview: React.FC<StepReviewProps> = ({
                 className="w-10 h-10 rounded-xl flex-shrink-0 object-cover border-2 border-purple-500/30"
               />
               <div>
-                <span className="font-bold gradient-text">{name}</span>
+                <span className="font-bold text-white">{name}</span>
                 <p className="text-white mt-1.5 leading-relaxed font-sans font-medium">
                   Hey! Chat wants to know what you're doing and if that's a new mic!
                 </p>

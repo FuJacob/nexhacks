@@ -205,7 +205,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
               />
             </div>
             <div>
-              <h2 className="text-2xl font-black gradient-text">
+              <h2 className="text-2xl font-black text-white">
                 {personaName}
               </h2>
               <p className="text-zinc-400 font-medium">

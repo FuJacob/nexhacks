@@ -41,8 +41,7 @@ function App() {
   const [selectedVoice, setSelectedVoice] = useState<string>("");
   const [persona, setPersona] = useState<PersonaSettings>(DEFAULT_PERSONA);
 
-  // Spirit Step UI State
-  const [isCustomSpirit, setIsCustomSpirit] = useState(false);
+
 
   // Loading/Saving
   const [loading, setLoading] = useState(true);
@@ -218,7 +217,7 @@ function App() {
           <div className="space-y-2">
             <h1 className="text-2xl font-bold">Settings Saved!</h1>
             <p className="text-zinc-400 text-sm leading-relaxed">
-              <span className="gradient-text font-bold">{persona.name}</span> is ready to give your chat a voice.
+              <span className="font-bold text-white">{persona.name}</span> is ready to give your chat a voice.
             </p>
           </div>
 
@@ -278,12 +277,8 @@ function App() {
 
         {step === 2 && (
           <StepSpirit
-            personality={persona.personality}
-            setPersonality={(p) => setPersona({ ...persona, personality: p })}
             style={persona.style}
             setStyle={(s) => setPersona({ ...persona, style: s })}
-            isCustom={isCustomSpirit}
-            setIsCustom={setIsCustomSpirit}
           />
         )}
 
