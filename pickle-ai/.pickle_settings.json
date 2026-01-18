@@ -1,0 +1,7 @@
+{
+  "voice": {
+    "voice_model": "aura-orion-en",
+    "sample_rate": 24000
+  },
+  "persona_name": "Pickle"
+}
