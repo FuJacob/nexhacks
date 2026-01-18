@@ -14,6 +14,8 @@ from ..utils.logging import get_logger
 from .settings_manager import (
     SettingsManager,
     VoiceSettings,
+    PersonaSettings,
+    BehaviorSettings,
     PickleSettings,
     get_settings_manager,
 )
@@ -26,7 +28,23 @@ STATIC_DIR = Path(__file__).parent / "static"
 class VoiceUpdateRequest(BaseModel):
     """Request model for updating voice settings."""
     voice_model: str
-    sample_rate: int = 24000
+
+
+class BehaviorUpdateRequest(BaseModel):
+    """Request model for updating behavior settings."""
+    spontaneous_rate: float = 0.15
+    cooldown: float = 3.0
+    chat_batch_size: int = 10
+    trigger_words: list[str] = []
+
+
+class PersonaUpdateRequest(BaseModel):
+    """Request model for updating persona settings."""
+    name: str
+    personality: str
+    style: list[str]
+    emotions: list[str]
+    behavior: BehaviorUpdateRequest
 
 
 def create_app(
@@ -76,12 +94,11 @@ def create_app(
         """Update voice settings."""
         new_settings = VoiceSettings(
             voice_model=request.voice_model,
-            sample_rate=request.sample_rate,
         )
         
         # Update TTS processor if available
         if tts_processor:
-            tts_processor.update_voice(request.voice_model, request.sample_rate)
+            tts_processor.update_voice(request.voice_model)
         
         return await sm.update_voice_settings(new_settings)
     
@@ -89,7 +106,30 @@ def create_app(
     async def get_available_voices():
         """Get list of available voice models."""
         return {"voices": sm.get_available_voices()}
-        return {"status": "healthy"}
+    
+    # ========== Persona Settings API ==========
+    
+    @app.get("/api/settings/persona", response_model=PersonaSettings)
+    async def get_persona_settings():
+        """Get current persona settings."""
+        return sm.get_persona_settings()
+    
+    @app.put("/api/settings/persona", response_model=PersonaSettings)
+    async def update_persona_settings(request: PersonaUpdateRequest):
+        """Update persona settings."""
+        new_settings = PersonaSettings(
+            name=request.name,
+            personality=request.personality,
+            style=request.style,
+            emotions=request.emotions,
+            behavior=BehaviorSettings(
+                spontaneous_rate=request.behavior.spontaneous_rate,
+                cooldown=request.behavior.cooldown,
+                chat_batch_size=request.behavior.chat_batch_size,
+                trigger_words=request.behavior.trigger_words,
+            )
+        )
+        return await sm.update_persona_settings(new_settings)
 
     @app.get("/overlay")
     async def overlay():

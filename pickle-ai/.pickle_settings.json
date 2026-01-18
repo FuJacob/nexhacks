@@ -1,7 +1,6 @@
 {
   "voice": {
-    "voice_model": "aura-asteria-en",
-    "sample_rate": 24000
+    "voice_model": "aura-asteria-en"
   },
   "persona_name": "Pickle"
 }

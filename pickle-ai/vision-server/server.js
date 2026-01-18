@@ -69,7 +69,7 @@ async function launchBrowser() {
         headless: 'new',
         args: [
             '--use-fake-ui-for-media-stream',
-            '--use-fake-device-for-media-stream',
+            // '--use-fake-device-for-media-stream', // Commented out to use REAL CAMERA
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-web-security',
