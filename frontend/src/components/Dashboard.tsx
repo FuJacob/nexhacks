@@ -15,8 +15,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
   const [isLive, setIsLive] = useState(true);
   const [messageCount, setMessageCount] = useState(0);
   const [uptime, setUptime] = useState(0);
-  
-  const avatarUrl = persona.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${personaName || "default"}`;
+
+  const avatarUrl =
+    persona.avatar ||
+    `https://api.dicebear.com/7.x/bottts/svg?seed=${personaName || "default"}`;
 
   // Simulate uptime counter
   useEffect(() => {

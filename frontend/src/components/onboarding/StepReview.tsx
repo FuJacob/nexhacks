@@ -15,8 +15,10 @@ export const StepReview: React.FC<StepReviewProps> = ({
   isSaving,
 }) => {
   const [showMessage, setShowMessage] = useState(false);
-  
-  const avatarUrl = persona.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${name || "default"}`;
+
+  const avatarUrl =
+    persona.avatar ||
+    `https://api.dicebear.com/7.x/bottts/svg?seed=${name || "default"}`;
 
   // Simple animation for the mock chat
   useEffect(() => {
