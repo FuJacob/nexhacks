@@ -22,9 +22,10 @@ const DEFAULT_PERSONA: PersonaSettings = {
   ],
   emotions: [],
   behavior: {
-    spontaneous_rate: 0.5,
-    cooldown: 10.0,
-    chat_batch_size: 10,
+    vision_rate: 0.1,
+    speech_rate: 0.9,
+    cooldown: 5.0,
+    chat_batch_size: 5,
     trigger_words: [],
   },
   avatar: "https://api.dicebear.com/7.x/bottts/svg?seed=default",
@@ -38,7 +39,7 @@ function App() {
   // Data State
   const [, setSettings] = useState<PickleSettings | null>(null);
   const [voices, setVoices] = useState<Voice[]>([]);
-  const [selectedVoice, setSelectedVoice] = useState<string>("");
+  const [selectedVoice, setSelectedVoice] = useState<string>("aura-2-amalthea-en");
   const [persona, setPersona] = useState<PersonaSettings>(DEFAULT_PERSONA);
 
 

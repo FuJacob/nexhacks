@@ -7,7 +7,8 @@ export interface Voice {
 }
 
 export interface BehaviorSettings {
-  spontaneous_rate: number;
+  vision_rate: number;
+  speech_rate: number;
   cooldown: number;
   chat_batch_size: number;
   trigger_words: string[];
@@ -41,16 +42,19 @@ export const getPresenceValues = (value: number) => {
   const intensity = value / 100;
 
   return {
-    spontaneous_rate: parseFloat((intensity * 0.8).toFixed(2)), // 0.0 to 0.8
-    cooldown: Math.max(0, 30 - intensity * 30), // 30s down to 0s
+    // Vision rate stays low to avoid loops, but bumps slightly for high energy
+    vision_rate: 0.1, 
+    // Speech rate controls the main "chattiness"
+    speech_rate: parseFloat((intensity * 0.9).toFixed(2)), // 0.0 to 0.9
+    cooldown: Math.max(2.0, 30 - intensity * 28), // 30s down to 2s
     chat_batch_size: Math.max(1, Math.round(15 - intensity * 14)), // 15 down to 1
   };
 };
 
 // Convert backend values back to an approximate Presence score (0-100) for initial state
 export const calculatePresenceScore = (behavior: BehaviorSettings): number => {
-  // We prioritize spontaneous rate as the main indicator
-  // 0.8 -> 100
+  // We prioritize speech rate as the main indicator
+  // 0.9 -> 100
   // 0.0 -> 0
-  return Math.min(100, Math.round((behavior.spontaneous_rate / 0.8) * 100));
+  return Math.min(100, Math.round((behavior.speech_rate / 0.9) * 100));
 };

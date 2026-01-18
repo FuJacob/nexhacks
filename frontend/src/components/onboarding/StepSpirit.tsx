@@ -9,7 +9,7 @@ export const StepSpirit: React.FC<StepSpiritProps> = ({
   style,
   setStyle,
 }) => {
-  const [humor, setHumor] = useState(50);
+  const [humor, setHumor] = useState(100);
 
   // Hardcode "Savage" (Tone=100) and "IRL" (Focus=100) behavior
   // Update styles whenever humor changes

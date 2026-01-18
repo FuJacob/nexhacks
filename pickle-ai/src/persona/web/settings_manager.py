@@ -29,9 +29,9 @@ class VoiceSettings(BaseModel):
 class BehaviorSettings(BaseModel):
     """Behavior configuration settings."""
     
-    vision_rate: float = Field(default=0.6, ge=0, le=1, description="Probability of reacting to vision (0-1)")
+    vision_rate: float = Field(default=0.10, ge=0, le=1, description="Probability of reacting to vision (0-1)")
     speech_rate: float = Field(default=0.5, ge=0, le=1, description="Probability of reacting to speech (0-1)")
-    cooldown: float = Field(default=3.0, ge=0, description="Minimum seconds between responses")
+    cooldown: float = Field(default=4.0, description="Minimum seconds between responses")
     chat_batch_size: int = Field(default=10, ge=1, description="Max chat messages to batch before processing")
     trigger_words: list[str] = Field(default_factory=lambda: ["pixel", "hey ai", "bot"], description="Keywords that trigger immediate response")
 
@@ -199,9 +199,9 @@ class SettingsManager:
                 "style": persona.style,
                 "emotions": persona.emotions,
                 "voice": {
-                    "provider": "openai",
-                    "voice_id": "nova",
-                    "speed": 1.1
+                    "provider": "deepgram",
+                    "voice_id": self.settings.voice.voice_model,
+                    "speed": 1.0
                 },
                 "behavior": {
                     "vision_rate": persona.behavior.vision_rate,
