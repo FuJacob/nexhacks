@@ -5,6 +5,11 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 800,
     height: 600,
+    title: "Pickle AI",
+    autoHideMenuBar: true,
+    frame: false,
+    titleBarStyle: "hidden",
+    trafficLightPosition: { x: 12, y: 12 },
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false, // For simplicity in this basic setup; consider true + preload for security

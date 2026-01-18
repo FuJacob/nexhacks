@@ -29,6 +29,19 @@ body {
   background: linear-gradient(135deg, var(--bg-dark) 0%, #0f0f23 100%);
   color: var(--text-primary);
   min-height: 100vh;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.title-bar-drag-region {
+  width: 100%;
+  height: 32px;
+  -webkit-app-region: drag;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  background: transparent;
 }
 
 .app-container {

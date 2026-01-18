@@ -114,6 +114,7 @@ function App() {
 
   return (
     <div className="app-container">
+      <div className="title-bar-drag-region"></div>
       <header className="app-header">
         <div className="logo-section">
           <span className="logo-icon">🥒</span>
