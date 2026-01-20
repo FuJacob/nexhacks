@@ -55,16 +55,31 @@ class LLMClient:
         try:
             # Prepare format option
             response_format = {"type": "json_object"} if response_schema else None
-
-            # Run synchronous Cerebras call in a thread
-            completion = await asyncio.to_thread(
-                self.client.chat.completions.create,
-                messages=messages,
-                model=self.model,
-                temperature=temperature,
-                max_completion_tokens=max_tokens,
-                response_format=response_format,
-            )
+            
+            # Retry loop for transient server errors (e.g. 503)
+            max_retries = 3
+            last_error = None
+            
+            for attempt in range(max_retries):
+                try:
+                    # Run synchronous Cerebras call in a thread
+                    completion = await asyncio.to_thread(
+                        self.client.chat.completions.create,
+                        messages=messages,
+                        model=self.model,
+                        temperature=temperature,
+                        max_completion_tokens=max_tokens,
+                        response_format=response_format,
+                    )
+                    break # Success!
+                except Exception as e:
+                    last_error = e
+                    logger.warning("llm_retry", attempt=attempt+1, error=str(e))
+                    if attempt < max_retries - 1:
+                        # Exponential backoff: 0.5s, 1.0s, etc.
+                        await asyncio.sleep(0.5 * (2 ** attempt))
+                    else:
+                        raise last_error # Re-raise final error after retries exhaused
 
             content = completion.choices[0].message.content
 

@@ -1,126 +1,170 @@
-# AI Persona - IRL Twitch Companion
+# Pickle AI
 
-A sophisticated AI companion designed for IRL Twitch streamers. This application integrates with Twitch Chat, processes interactions using Google's Gemini LLM, and provides response feedback via Text-to-Speech (TTS) and a visual Avatar overlay.
+A multi-modal AI companion for Twitch streamers. Pickle acts as the collective "voice of chat" by listening to Twitch messages, hearing the streamer speak, and watching the stream via computer vision. It synthesizes all of this context into real-time spoken responses.
 
 ## Features
 
-- **Intelligent Chat Interaction:** Uses Google Gemini to understand and reply to Twitch chat messages in character.
-- **Twitch Integration:** Listens to chat in real-time.
-- **Dynamic TTS:** Vocalizes AI responses relative to the context.
-- **Visual Avatar:** Provides a web-based overlay to display the persona's state or avatar.
-- **Configurable Personas:** Custom define your AI's personality via YAML configuration.
-- **Docker Support:** Easily containerize the application for deployment.
+- Real-time Twitch chat integration via TwitchIO
+- Speech-to-text using Deepgram Nova-2 for hearing the streamer
+- Computer vision using Overshoot SDK for analyzing the stream
+- Text-to-speech using Deepgram Aura for natural voice output
+- LLM inference via Cerebras Llama 3.1 for fast response generation
+- Hybrid memory system with ChromaDB for long-term recall
+- Priority-based event orchestration to handle concurrent inputs
+- React and Electron desktop app for persona configuration
+- OBS overlay integration for streaming
 
 ## Prerequisites
 
-- **Python 3.11+**
-- **FFmpeg:** Required for audio processing.
+- Python 3.11 or higher
+- Node.js 18 or higher (for the vision server)
+- FFmpeg for audio processing
   - macOS: `brew install ffmpeg`
   - Ubuntu/Debian: `sudo apt install ffmpeg`
-- **Google Gemini API Key:** Get one from [Google AI Studio](https://makersuite.google.com/).
-- **Twitch Developer Account:** You need a Client ID and an OAuth Token for the bot account.
 
-## Installation
+## Environment Variables
 
-### 1. Clone the repository
-
-```bash
-git clone <repository_url>
-cd pickle-ai
-```
-
-### 2. Environment Setup
-
-Copy `env.example` to `.env` (create one if it doesn't exist) and fill in your credentials:
-
-```bash
-cp .env.example .env
-```
-
-**Required Environment Variables (`.env`):**
+Create a `.env` file in the project root:
 
 ```env
-# Google Gemini
-GEMINI_API_KEY=your_gemini_api_key_here
+# LLM (Cerebras)
+CEREBRAS_API_KEY=your_cerebras_api_key
+CEREBRAS_MODEL=llama-3.3-70b
+
+# Speech Services (Deepgram)
+DEEPGRAM_API_KEY=your_deepgram_api_key
 
 # Twitch Configuration
-TWITCH_BOT_TOKEN=oauth:your_token_here
+TWITCH_BOT_TOKEN=oauth:your_token
 TWITCH_CLIENT_ID=your_client_id
 TWITCH_CLIENT_SECRET=your_client_secret
 TWITCH_BOT_ID=your_bot_user_id
-TWITCH_CHANNEL=target_channel_name
-TWITCH_BOT_USERNAME=bot_username
+TWITCH_CHANNEL=your_channel_name
 
-# Optional Configuration
-AUDIO_OUTPUT_DEVICE=VB-Cable  # Or your preferred output device
-HOST=127.0.0.1
-PORT=8000
-PERSONA_CONFIG=config/personas/default.yaml
+# Vision (optional)
+VISION_ENABLED=true
+OVERSHOOT_API_KEY=your_overshoot_api_key
+
+# Audio
+AUDIO_OUTPUT_DEVICE=VB-Cable
 ```
 
-_Note: For `TWITCH_BOT_TOKEN`, you can generate an OAuth token using a tool like [Twitch Token Generator](https://twitchtokengenerator.com/) with scopes for reading chat (`chat:read`, `chat:edit`)._
+For the vision server, create `vision-server/.env`:
 
-### 3. Install Dependencies
+```env
+OVERSHOOT_API_KEY=your_overshoot_api_key
+```
 
-The project uses `uv` for fast dependency management, but `pip` works as well.
+## Installation
 
-**Using the provided run script (Recommended):**
-This script will automatically install `uv` if needed.
+Clone the repository and install dependencies:
+
+```bash
+git clone https://github.com/FuJacob/nexhacks.git
+cd nexhacks/pickle-ai
+```
+
+The run script handles dependency installation automatically:
 
 ```bash
 ./run.sh
 ```
 
-**Manual Installation:**
+For manual installation:
 
 ```bash
 pip install .
-# OR
-uv pip install .
 ```
 
 ## Usage
 
-### Running Locally
+### Running the Backend
 
-To start the application:
+Start the application with:
 
 ```bash
 ./run.sh
 ```
 
-Or manually:
+This launches both the Python backend and the Node.js vision server.
+
+### Running the Frontend
+
+In a separate terminal:
 
 ```bash
-python -m src.persona.main
+cd frontend
+npm install
+npm run electron:dev
 ```
 
-### Running with Docker
+### OBS Integration
 
-A `docker-compose.yml` is provided for easy containerization.
+Add the overlay as a Browser Source in OBS:
 
-```bash
-docker-compose up --build
+```
+http://localhost:8000/static/overlay.html
 ```
 
-The web server will be available at `http://localhost:8000`.
+## Architecture
 
-## Configuration
+The system consists of three services:
 
-### Personas
+1. Python Backend (FastAPI): Orchestrates inputs, runs LLM inference, manages memory
+2. Node.js Vision Server (Fastify): Runs Overshoot SDK in headless Chrome via Puppeteer
+3. Electron Frontend (React): Desktop control panel and OBS overlay
 
-You can define the personality of the AI in `config/personas/default.yaml` or create new YAML files and point to them using the `PERSONA_CONFIG` environment variable.
+### Input Sources
 
-### Overlay
+- Twitch Chat: Batched messages processed via TwitchIO
+- Speech: Real-time transcription via Deepgram Nova-2 WebSocket
+- Vision: Scene descriptions from Overshoot SDK
 
-The visual overlay is hosted at `http://localhost:8000/static/overlay.html` (check exact path in `src/web/server.py`). You can add this as a Browser Source in OBS.
+### Processing Pipeline
+
+1. Inputs are collected into an asyncio queue
+2. The orchestrator applies priority-based filtering (chat > speech > vision)
+3. Context is assembled from short-term memory (deque) and long-term memory (ChromaDB)
+4. Cerebras Llama 3.1 generates a response
+5. Deepgram Aura converts text to speech
+6. Audio is routed to VB-Cable for OBS capture
 
 ## Project Structure
 
-- `config/`: Configuration files and persona definitions.
-- `src/persona/`: Main application source code.
-  - `brain/`: LLM integration and persona logic.
-  - `inputs/`: Input handlers (Twitch Chat).
-  - `outputs/`: Output handlers (TTS, Avatar).
-  - `web/`: Web server for the overlay.
-- `run.sh`: Helper script to set up and run the app.
+```
+pickle-ai/
+├── config/personas/        # Persona YAML configurations
+├── src/persona/
+│   ├── brain/              # LLM client, memory, context assembler
+│   ├── inputs/             # Twitch, speech, vision processors
+│   ├── outputs/            # TTS, avatar handlers
+│   ├── web/                # FastAPI server and settings
+│   ├── orchestrator.py     # Main event loop
+│   └── main.py             # Entry point
+├── vision-server/          # Node.js Overshoot integration
+├── frontend/               # Electron and React app
+└── run.sh                  # Startup script
+```
+
+## Configuration
+
+Persona settings are defined in `config/personas/default.yaml`:
+
+```yaml
+name: "Pickle"
+streamer_name: "YourName"
+
+personality: |
+  Pickle is the voice of Twitch chat.
+  They summarize what viewers are saying and speak for them.
+
+style:
+  - Keep responses under 2 sentences
+  - Use casual, conversational language
+
+behavior:
+  vision_rate: 0.10
+  speech_rate: 0.50
+  cooldown: 4.0
+  chat_batch_size: 15
+```
